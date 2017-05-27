@@ -8,16 +8,18 @@
 //                                                                                               //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef DRONE_SIM_ADDRESSEE
-#define DRONE_SIM_ADDRESSEE
+#ifndef DRONE_SIM_MOTHERSHIP
+#define DRONE_SIM_MOTHERSHIP
 
 #include "typedefs.h"
 
 typedef struct {
-    addressee_id_t addressee_id;
-    distance_t mothership_distance; // distance to the mothership
-    airway_t airway;
-} addressee_t;
+    unsigned int nb_package_loading_slots;
+    unsigned int nb_power_loading_slots;
+    power_unit_t power_unit_per_tick;
+    addressee_t* addressees;
+} mothership_t;
 
-#endif /* ifndef DRONE_SIM_ADDRESSEE */
+#endif /* ifndef DRONE_SIM_MOTHERSHIP */
+
 

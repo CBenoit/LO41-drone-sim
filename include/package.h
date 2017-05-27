@@ -11,10 +11,7 @@
 #ifndef DRONE_SIM_PACKAGE
 #define DRONE_SIM_PACKAGE
 
-#include "addressee.h"
-
-typedef priority_t unsigned int;
-typedef weigth_t unsigned int;
+#include "typedefs.h"
 
 typedef struct {
     priority_t priority;

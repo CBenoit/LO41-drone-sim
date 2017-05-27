@@ -8,16 +8,20 @@
 //                                                                                               //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef DRONE_SIM_ADDRESSEE
-#define DRONE_SIM_ADDRESSEE
+#ifndef DRONE_SIM_DRONE
+#define DRONE_SIM_DRONE
 
 #include "typedefs.h"
 
 typedef struct {
-    addressee_id_t addressee_id;
-    distance_t mothership_distance; // distance to the mothership
-    airway_t airway;
-} addressee_t;
+    power_unit_t fuel;
+    power_unit_t max_fuel;
+    weigth_t max_load;
+    package_t* package;
+    distance_t addressee_distance;
+    distance_t mothership_distance;
+    // addressee_distance + mothership_distance should be a constant sum during runtime.
+} drone_t;
 
-#endif /* ifndef DRONE_SIM_ADDRESSEE */
+#endif /* ifndef DRONE_SIM_DRONE */
 
