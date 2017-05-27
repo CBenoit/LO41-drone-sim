@@ -11,14 +11,14 @@
 #ifndef DRONE_SIM_TYPEDEFS
 #define DRONE_SIM_TYPEDEFS
 
-typedef priority_t unsigned int;
-typedef weigth_t unsigned int;
-typedef addressee_id_t unsigned int;
-typedef ammo_t unsigned int;
-typedef power_unit_t unsigned int;
-typedef distance_t unsigned int;
-typedef airway_t unsigned int;
-typedef nb_ticks_t unsigned int;
+typedef unsigned int priority_t;
+typedef unsigned int weigth_t;
+typedef unsigned int addressee_id_t;
+typedef unsigned int ammo_t;
+typedef unsigned int power_unit_t;
+typedef unsigned int distance_t;
+typedef unsigned int airway_t;
+typedef unsigned int nb_ticks_t;
 
 #endif /* ifndef DRONE_SIM_TYPEDEFS */
 
