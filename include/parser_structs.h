@@ -13,6 +13,9 @@
 #define DRONE_SIM_PARSER_STRUCTS
 
 #include "typedefs.h"
+#include "drone.h"
+#include "hunter.h"
+#include "mothership.h"
 
 enum {
     parser_x = 0,
@@ -64,6 +67,14 @@ typedef struct {
     unsigned int package_nbr;
     parser_package_type* packages;
 } parser_data;
+
+typedef struct {
+    mothership_t mothership;
+    unsigned int drone_nbr;
+    drone_t* drones;
+    unsigned int hunter_nbr;
+    hunter_t* hunters;
+} sim_data;
 
 #endif //DRONE_SIME_PARSER_STRUCTS
 

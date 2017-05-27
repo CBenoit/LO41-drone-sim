@@ -1,10 +1,13 @@
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
+#include <math.h>
 
 #include "parser.h"
 
 static void count(parser_data* data, FILE* file);
 static void parse(parser_data* data, FILE* file);
+static client_id_t find(unsigned long value, unsigned long* array, unsigned long size);
 
 void load(parser_data* data, FILE* file) {
     count(data, file);
@@ -96,4 +99,83 @@ void parse(parser_data* data, FILE* file) {
         line = NULL;
         len = 0;
     }
+}
+
+void load_simulation_data(parser_data* input, sim_data* output) {
+    // Loading the Mother Ship
+    output->mothership.package_throughput = input->mothership.package_throughput;
+    output->mothership.power_loading_slots = input->mothership.reloader_nbr;
+    output->mothership.client_nbr = input->client_nbr;
+    output->mothership.package_nbr = input->package_nbr;
+
+    client_id_t* clients_ids_map = malloc(output->mothership.client_nbr * sizeof(client_id_t));
+
+    output->mothership.clients  = malloc(output->mothership.client_nbr  * sizeof(client_t));
+    for (uint_fast32_t i = output->mothership.client_nbr ; i-- ;) {
+        output->mothership.clients[i].client_id = i;
+        output->mothership.clients[i].mothership_distance =
+            sqrt(input->clients[i].coord[parser_x] * input->clients[i].coord[parser_x] + input->clients[i].coord[parser_y] * input->clients[i].coord[parser_y]);
+        output->mothership.clients[i].airway = /* TODO */ -1;
+
+        clients_ids_map[i] = input->clients[i].id;
+    }
+
+    output->mothership.packages = malloc(output->mothership.package_nbr * sizeof(package_t));
+    for (uint_fast32_t i = output->mothership.package_nbr ; i-- ;) {
+        output->mothership.packages[i].priority = input->packages[i].priority;
+        output->mothership.packages[i].weight = input->packages[i].weight;
+        output->mothership.packages[i].volume = input->packages[i].volume;
+        output->mothership.packages[i].client_id = find(input->packages[i].target, clients_ids_map, output->mothership.client_nbr);
+    }
+
+    free(clients_ids_map);
+
+    // Loading Drones
+    output->drone_nbr = input->drone_nbr;
+    output->drones = malloc(output->drone_nbr * sizeof(drone_t));
+    for (uint_fast32_t i = output->drone_nbr ; i-- ;) {
+        output->drones[i].max_fuel = input->drones[i].power_capacity;
+        output->drones[i].fuel = output->drones[i].max_fuel;
+        output->drones[i].max_package_weight = input->drones[i].trunk.weight_capacity;
+        output->drones[i].max_package_volume = input->drones[i].trunk.volume_capacity;
+        output->drones[i].package = NULL;
+        output->drones[i].client_distance = 0;
+        output->drones[i].mothership_distance = 0;
+    }
+
+    // Loading Hunters
+    output->hunter_nbr = input->hunter_nbr;
+    output->hunters = malloc(output->hunter_nbr * sizeof(hunter_t));
+    for (uint_fast32_t i = output->hunter_nbr ; i-- ;) {
+        output->hunters[i].ammo = input->hunters[i].ammo;
+        output->hunters[i].shoot_interval = input->hunters[i].reload_time;
+    }
+}
+
+void unload_simulation_data(sim_data* data) {
+    data->mothership.client_nbr = 0;
+    free(data->mothership.clients);
+    data->mothership.clients = NULL;
+
+    data->mothership.package_nbr = 0;
+    free(data->mothership.packages);
+    data->mothership.packages = NULL;
+
+    data->drone_nbr = 0;
+    free(data->drones);
+    data->drones = NULL;
+
+    data->hunter_nbr = 0;
+    free(data->hunters);
+    data->hunters = NULL;
+}
+
+client_id_t find(unsigned long value, unsigned long* array, unsigned long size) {
+    for (unsigned long i = size ; i-- ;) {
+        if (array[i] == value) {
+            return i;
+        }
+    }
+    printf("Client %lu doesn't exist! Aborting...\n", value);
+    abort();
 }

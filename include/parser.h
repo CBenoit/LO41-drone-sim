@@ -19,4 +19,8 @@ void load(parser_data* data, FILE* file);
 
 void unload(parser_data* data);
 
+void load_simulation_data(parser_data* input, sim_data* output);
+
+void unload_simulation_data(sim_data* data);
+
 #endif // DRONE_SIM_PARSER

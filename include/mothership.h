@@ -13,6 +13,7 @@
 
 #include "typedefs.h"
 #include "client.h"
+#include "package.h"
 
 typedef struct {
     unsigned long int package_throughput; // number of packages per tick
@@ -20,6 +21,8 @@ typedef struct {
     power_t power_throughput;
     unsigned int client_nbr;
     client_t* clients;
+    unsigned int package_nbr;
+    package_t* packages;
 } mothership_t;
 
 #endif /* ifndef DRONE_SIM_MOTHERSHIP */
