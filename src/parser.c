@@ -58,6 +58,7 @@ void count(parser_data* data, FILE* file) {
         line = NULL;
         len = 0;
     }
+    free(line);
 }
 
 void parse(parser_data* data, FILE* file) {
@@ -99,12 +100,14 @@ void parse(parser_data* data, FILE* file) {
         line = NULL;
         len = 0;
     }
+    free(line);
 }
 
 void load_simulation_data(parser_data* input, sim_data* output) {
     // Loading the Mother Ship
     output->mothership.package_throughput = input->mothership.package_throughput;
     output->mothership.power_loading_slots = input->mothership.reloader_nbr;
+    output->mothership.power_throughput = input->mothership.reloader_throughput;
     output->mothership.client_nbr = input->client_nbr;
     output->mothership.package_nbr = input->package_nbr;
 
