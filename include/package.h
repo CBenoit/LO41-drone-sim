@@ -16,6 +16,7 @@
 typedef struct {
     priority_t priority;
     weigth_t weight;
+    volume_t volume;
     client_id_t client_id;
 } package_t;
 

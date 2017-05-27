@@ -18,12 +18,19 @@ void load(parser_data* data, FILE* file) {
 void unload(parser_data* data) {
     data->drone_nbr = 0;
     free(data->drones);
+    data->drones = NULL;
+
     data->client_nbr = 0;
     free(data->clients);
+    data->clients = NULL;
+
     data->hunter_nbr = 0;
     free(data->hunters);
+    data->hunters = NULL;
+
     data->package_nbr = 0;
     free(data->packages);
+    data->packages = NULL;
 }
 
 
@@ -65,13 +72,13 @@ void parse(parser_data* data, FILE* file) {
         } else if (strcmp(val, "colis") == 0) {
             data->packages[data->package_nbr].weight = strtod(strtok(NULL, ",;"), NULL);
             data->packages[data->package_nbr].volume = strtod(strtok(NULL, ",;"), NULL);
-            data->packages[data->package_nbr].target = strtol(strtok(NULL, ",;"), NULL, 10);
-            data->packages[data->package_nbr].priority = strtol(strtok(NULL, ",;"), NULL, 10);
+            data->packages[data->package_nbr].target = strtoul(strtok(NULL, ",;"), NULL, 10);
+            data->packages[data->package_nbr].priority = strtoul(strtok(NULL, ",;"), NULL, 10);
             ++data->package_nbr;
         } else if (strcmp(val, "client") == 0) {
             data->clients[data->client_nbr].coord[parser_x] = strtod(strtok(NULL,",;"), NULL);
             data->clients[data->client_nbr].coord[parser_y] = strtod(strtok(NULL,",;"), NULL);
-            data->clients[data->client_nbr].id = strtol(strtok(NULL,",;"), NULL, 10);
+            data->clients[data->client_nbr].id = strtoul(strtok(NULL,",;"), NULL, 10);
             ++data->client_nbr;
         } else if (strcmp(val, "chasseur") == 0) {
             data->hunters[data->hunter_nbr].ammo = strtoul(strtok(NULL,",;"), NULL, 10);

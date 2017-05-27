@@ -31,7 +31,7 @@ typedef struct {
 
 typedef struct {
     double coord[2];
-    long int id;
+    unsigned long int id;
 } parser_client_type;
 
 typedef struct {
@@ -42,8 +42,8 @@ typedef struct {
 typedef struct {
     double   weight;
     double   volume;
-    long int target;
-    long int priority;
+    unsigned long int target;
+    unsigned long int priority;
 } parser_package_type;
 
 typedef struct {

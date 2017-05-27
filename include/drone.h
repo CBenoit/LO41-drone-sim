@@ -12,11 +12,13 @@
 #define DRONE_SIM_DRONE
 
 #include "typedefs.h"
+#include "package.h"
 
 typedef struct {
-    power_unit_t fuel;
-    power_unit_t max_fuel;
-    weigth_t max_load;
+    power_t fuel;
+    power_t max_fuel;
+    weigth_t max_package_weight;
+    volume_t max_package_volume;
     package_t* package;
     distance_t client_distance;
     distance_t mothership_distance;

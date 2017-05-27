@@ -12,11 +12,13 @@
 #define DRONE_SIM_MOTHERSHIP
 
 #include "typedefs.h"
+#include "client.h"
 
 typedef struct {
     unsigned long int package_throughput; // number of packages per tick
     unsigned long int power_loading_slots;  //
-    power_unit_t power_throughput;
+    power_t power_throughput;
+    unsigned int client_nbr;
     client_t* clients;
 } mothership_t;
 

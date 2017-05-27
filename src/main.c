@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
     parser_data data;
     load(&data, fopen("test.csv", "r"));
 
-    printf("Mother Ship :\n\tx : %lf\n\ty : %lf\n\tPackage throughput : %lf\n\tReloader throughput : %lf\n\t%lu reloaders.\n\n",
+    printf("Mother Ship :\n\tx : %lf\n\ty : %lf\n\tPackage throughput : %lu\n\tReloader throughput : %lf\n\t%lu reloaders.\n\n",
             data.mothership.coord[parser_x], data.mothership.coord[parser_y], data.mothership.package_throughput, data.mothership.reloader_throughput, data.mothership.reloader_nbr);
 
     printf("%d Drones.", data.drone_nbr);
