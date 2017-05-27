@@ -19,8 +19,9 @@ int main(int argc, char *argv[]) {
     load(&data, "test.csv");
     load_simulation_data(&data, &sim);
 
+    printf("\n-------- Parsed data --------\n\n");
     print_parsed_data(&data);
-    printf("\n\n");
+    printf("\n\n----- Simulation data -----\n\n");
     print_simulation_data(&sim);
 
     unload_simulation_data(&sim);

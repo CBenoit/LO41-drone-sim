@@ -218,13 +218,13 @@ void print_parsed_data(parser_data* data) {
 }
 
 void print_simulation_data(sim_data* data) {
-    printf("\n\nMother Ship :\n\t%lu packages can be loaded at once\n\t%lu power loading slots\n\t%.2lf power throughput per slot\n\t%u clients\n\t%u packages",
+    printf("\n\n\033[33mMother Ship :\n\t%lu packages can be loaded at once\n\t%lu power loading slots\n\t%.2lf power throughput per slot\n\t%u clients\n\t%u packages",
             data->mothership.package_throughput,
             data->mothership.power_loading_slots,
             data->mothership.power_throughput,
             data->mothership.client_nbr,
             data->mothership.package_nbr);
-    printf("\n\n\tClients :");
+    printf("\n\n\t\033[31mClients :");
     for (unsigned long int i = 0 ; i < data->mothership.client_nbr ; ++i) {
         printf("\n\t\tClient #%lu :\n\t\t\tID :                        %lu\n\t\t\tDistance from Mother Ship : %.2lf\n\t\t\tAirway :                    %lu",
                 i,
@@ -233,7 +233,7 @@ void print_simulation_data(sim_data* data) {
                 data->mothership.clients[i].airway);
     }
 
-    printf("\n\n\tPackages :");
+    printf("\n\n\t\033[32mPackages :");
     for (unsigned long int i = 0 ; i < data->mothership.package_nbr ; ++i) {
         printf("\n\t\tPackage #%lu :\n\t\t\tPriority :        %lu\n\t\t\tWeight :          %.2lf\n\t\t\tVolume :          %.2lf\n\t\t\tTarget :  client #%lu",
                 i,
@@ -243,7 +243,7 @@ void print_simulation_data(sim_data* data) {
                 data->mothership.packages[i].client_id);
     }
 
-    printf("\n\n-------------------------\nDrones :");
+    printf("\n\n\033[0m-------------------------\n\033[34mDrones :");
     for (unsigned long int i = 0 ; i < data->drone_nbr ; i++) {
         printf("\n\tDrone #%lu :\n\t\tFuel :                    %.2lf/%.2lf\n\t\tWeight max :              %.2lf\n\t\tVolume max :              %.2lf\n\t\tDistance to client :      %.2lf\n\t\tDistance to Mother Ship : %.2lf\n\t\t%s",
                 i,
@@ -257,11 +257,12 @@ void print_simulation_data(sim_data* data) {
     }
 
 
-    printf("\n\n%d Hunters.", data->hunter_nbr);
+    printf("\n\n\033[0m-------------------------\n\033[35mHunters :");
     for (unsigned long int i = 0 ; i < data->hunter_nbr ; ++i) {
         printf("\n\tHunter #%ld :\n\t\tAmmo :        %ld\n\t\tReload time : %ld", i,
             data->hunters[i].ammo, data->hunters[i].shoot_interval);
     }
 
-    printf("\n\n");
+    printf("\n\n\033[0m");
+    fflush(stdout);
 }
