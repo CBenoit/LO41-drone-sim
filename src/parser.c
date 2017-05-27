@@ -7,9 +7,6 @@ static void count(parser_data* data, FILE* file);
 static void parse(parser_data* data, FILE* file);
 
 void load(parser_data* data, FILE* file) {
-    if (data->drone_nbr) {
-        unload(data);
-    }
     count(data, file);
     data->drones   = (parser_drone_type*)   malloc(data->drone_nbr   * sizeof(parser_drone_type));
     data->clients  = (parser_client_type*)  malloc(data->client_nbr  * sizeof(parser_client_type));
@@ -31,6 +28,7 @@ void unload(parser_data* data) {
 
 
 void count(parser_data* data, FILE* file) {
+    data->drone_nbr = data->package_nbr = data->client_nbr = data->hunter_nbr = 0;
     fseek(file, 0, SEEK_SET);
     size_t len;
     char* line = NULL;

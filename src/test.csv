@@ -1,0 +1,15 @@
+#drone;capacité_fuel;capacité_poids;capacité_volume
+#colis;poids;volume;client_cible(entier);priorité(entier)
+#client;X;Y;ID(entier >= 0)
+#chasseur;qtt_munition;temps_rechargement
+#vaisseau;X;Y;débit_colis;débit_pompes;nbr_pompes
+
+drone;1000;350;100
+vaisseau;125;87.5;3;10.5;5
+drone;250;1000;772.5
+colis;300;300;7;12
+client;10;20;7
+client;-30;500;2
+colis;200;100;7;15
+colis;3;0.5;2;200
+chasseur;2;127
