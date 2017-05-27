@@ -48,7 +48,7 @@ typedef struct {
 
 typedef struct {
     double coord[2];
-    double package_throughput;
+    unsigned long int package_throughput;
     double reloader_throughput;
     unsigned long int reloader_nbr;
 } parser_mothership_type;

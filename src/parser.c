@@ -80,7 +80,7 @@ void parse(parser_data* data, FILE* file) {
         } else if (strcmp(val, "vaisseau") == 0) {
             data->mothership.coord[parser_x] = strtod(strtok(NULL,",;"), NULL);
             data->mothership.coord[parser_y] = strtod(strtok(NULL,",;"), NULL);
-            data->mothership.package_throughput = strtod(strtok(NULL,",;"), NULL);
+            data->mothership.package_throughput = strtoul(strtok(NULL,",;"), NULL, 10);
             data->mothership.reloader_throughput = strtod(strtok(NULL,",;"), NULL);
             data->mothership.reloader_nbr = strtoul(strtok(NULL,",;"), NULL, 10);
         }
