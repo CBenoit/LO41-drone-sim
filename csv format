@@ -1,0 +1,5 @@
+drone;capacité_fuel;capacité_poids;capacité_volume
+colis;poids;volume;client_cible(entier);priorité(entier)
+client;X;Y;ID(entier >= 0)
+chasseur;qtt_munition;temps_rechargement
+vaisseau;X;Y;débit_colis;débit_pompes;nbr_pompes

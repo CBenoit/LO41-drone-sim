@@ -8,16 +8,15 @@
 //                                                                                               //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef DRONE_SIM_ADDRESSEE
-#define DRONE_SIM_ADDRESSEE
 
-#include "typedefs.h"
+#ifndef DRONE_SIM_PARSER
+#define DRONE_SIM_PARSER
 
-typedef struct {
-    addressee_id_t addressee_id;
-    distance_t mothership_distance; // distance to the mothership
-    airway_t airway;
-} addressee_t;
+#include <stdio.h>
+#include "parser_structs.h"
 
-#endif /* ifndef DRONE_SIM_ADDRESSEE */
+void load(parser_data* data, FILE* file);
 
+void unload(parser_data* data);
+
+#endif // DRONE_SIM_PARSER
