@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdint.h>
 #include <math.h>
@@ -9,13 +10,15 @@ static void count(parser_data* data, FILE* file);
 static void parse(parser_data* data, FILE* file);
 static client_id_t find(unsigned long value, unsigned long* array, unsigned long size);
 
-void load(parser_data* data, FILE* file) {
+void load(parser_data* data, const char* file_path) {
+    FILE* file = fopen(file_path, "r");
     count(data, file);
     data->drones   = (parser_drone_type*)   malloc(data->drone_nbr   * sizeof(parser_drone_type));
     data->clients  = (parser_client_type*)  malloc(data->client_nbr  * sizeof(parser_client_type));
     data->hunters  = (parser_hunter_type*)  malloc(data->hunter_nbr  * sizeof(parser_hunter_type));
     data->packages = (parser_package_type*) malloc(data->package_nbr * sizeof(parser_package_type));
     parse(data, file);
+    fclose(file);
 }
 
 void unload(parser_data* data) {
@@ -181,4 +184,84 @@ client_id_t find(unsigned long value, unsigned long* array, unsigned long size) 
     }
     printf("Client %lu doesn't exist! Aborting...\n", value);
     abort();
+}
+
+void print_parsed_data(parser_data* data) {
+    printf("Mother Ship :\n\tx : %.2lf\n\ty : %.2lf\n\tPackage throughput : %lu\n\tReloader throughput : %.2lf\n\t%lu reloaders.\n\n",
+            data->mothership.coord[parser_x], data->mothership.coord[parser_y], data->mothership.package_throughput, data->mothership.reloader_throughput, data->mothership.reloader_nbr);
+
+    printf("%d Drones.", data->drone_nbr);
+    for (unsigned long int i = 0 ; i < data->drone_nbr ; ++i) {
+        printf("\n\tDrone #%ld :\n\t\tPower trunk : %.2lf\n\t\tVolume capa : %.2lf\n\t\tWeight capa : %.2lf", i,
+            data->drones[i].power_capacity, data->drones[i].trunk.volume_capacity, data->drones[i].trunk.weight_capacity);
+    }
+
+    printf("\n\n%d Packages.", data->package_nbr);
+    for (unsigned long int i = 0 ; i < data->package_nbr ; ++i) {
+        printf("\n\tPackage #%ld :\n\t\tTarget :   %ld\n\t\tWeight :   %.2lf\n\t\tVolume :   %.2lf\n\t\tPriority : %ld", i,
+            data->packages[i].target, data->packages[i].weight, data->packages[i].volume, data->packages[i].priority);
+    }
+
+    printf("\n\n%d Clients.", data->client_nbr);
+    for (unsigned long int i = 0 ; i < data->client_nbr ; ++i) {
+        printf("\n\tClient #%ld :\n\t\tID : %ld\n\t\tx :  %.2lf\n\t\ty :  %.2lf", i,
+            data->clients[i].id, data->clients[i].coord[parser_x], data->clients[i].coord[parser_y]);
+    }
+
+    printf("\n\n%d Hunters.", data->hunter_nbr);
+    for (unsigned long int i = 0 ; i < data->hunter_nbr ; ++i) {
+        printf("\n\tHunter #%ld :\n\t\tAmmo :        %ld\n\t\tReload time : %ld", i,
+            data->hunters[i].ammo, data->hunters[i].reload_time);
+    }
+
+    printf("\n\n");
+}
+
+void print_simulation_data(sim_data* data) {
+    printf("\n\nMother Ship :\n\t%lu packages can be loaded at once\n\t%lu power loading slots\n\t%.2lf power throughput per slot\n\t%u clients\n\t%u packages",
+            data->mothership.package_throughput,
+            data->mothership.power_loading_slots,
+            data->mothership.power_throughput,
+            data->mothership.client_nbr,
+            data->mothership.package_nbr);
+    printf("\n\n\tClients :");
+    for (unsigned long int i = 0 ; i < data->mothership.client_nbr ; ++i) {
+        printf("\n\t\tClient #%lu :\n\t\t\tID :                        %lu\n\t\t\tDistance from Mother Ship : %.2lf\n\t\t\tAirway :                    %lu",
+                i,
+                data->mothership.clients[i].client_id,
+                data->mothership.clients[i].mothership_distance,
+                data->mothership.clients[i].airway);
+    }
+
+    printf("\n\n\tPackages :");
+    for (unsigned long int i = 0 ; i < data->mothership.package_nbr ; ++i) {
+        printf("\n\t\tPackage #%lu :\n\t\t\tPriority :        %lu\n\t\t\tWeight :          %.2lf\n\t\t\tVolume :          %.2lf\n\t\t\tTarget :  client #%lu",
+                i,
+                data->mothership.packages[i].priority,
+                data->mothership.packages[i].weight,
+                data->mothership.packages[i].volume,
+                data->mothership.packages[i].client_id);
+    }
+
+    printf("\n\n-------------------------\nDrones :");
+    for (unsigned long int i = 0 ; i < data->drone_nbr ; i++) {
+        printf("\n\tDrone #%lu :\n\t\tFuel :                    %.2lf/%.2lf\n\t\tWeight max :              %.2lf\n\t\tVolume max :              %.2lf\n\t\tDistance to client :      %.2lf\n\t\tDistance to Mother Ship : %.2lf\n\t\t%s",
+                i,
+                data->drones[i].fuel,
+                data->drones[i].max_fuel,
+                data->drones[i].max_package_weight,
+                data->drones[i].max_package_volume,
+                data->drones[i].client_distance,
+                data->drones[i].mothership_distance,
+                data->drones[i].package != NULL ? "Has a package" : "Hasn't got any package");
+    }
+
+
+    printf("\n\n%d Hunters.", data->hunter_nbr);
+    for (unsigned long int i = 0 ; i < data->hunter_nbr ; ++i) {
+        printf("\n\tHunter #%ld :\n\t\tAmmo :        %ld\n\t\tReload time : %ld", i,
+            data->hunters[i].ammo, data->hunters[i].shoot_interval);
+    }
+
+    printf("\n\n");
 }

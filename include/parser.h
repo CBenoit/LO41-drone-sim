@@ -12,15 +12,18 @@
 #ifndef DRONE_SIM_PARSER
 #define DRONE_SIM_PARSER
 
-#include <stdio.h>
 #include "parser_structs.h"
 
-void load(parser_data* data, FILE* file);
+void load(parser_data* data, const char* file_path);
 
 void unload(parser_data* data);
 
 void load_simulation_data(parser_data* input, sim_data* output);
 
 void unload_simulation_data(sim_data* data);
+
+void print_parsed_data(parser_data* data);
+
+void print_simulation_data(sim_data* data);
 
 #endif // DRONE_SIM_PARSER
