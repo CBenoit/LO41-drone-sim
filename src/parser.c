@@ -5,6 +5,9 @@
 #include <math.h>
 
 #include "parser.h"
+#include "typedefs.h"
+
+#define AIRWAY_SIZE ((double) 0.2) // in radians
 
 static void count(parser_data* data, FILE* file);
 static void parse(parser_data* data, FILE* file);
@@ -118,10 +121,12 @@ void load_simulation_data(parser_data* input, sim_data* output) {
 
     output->mothership.clients  = malloc(output->mothership.client_nbr  * sizeof(client_t));
     for (uint_fast32_t i = output->mothership.client_nbr ; i-- ;) {
+        double rx = input->clients[i].coord[parser_x] - input->mothership.coord[parser_x]; // relative x
+        double ry = input->clients[i].coord[parser_y] - input->mothership.coord[parser_y]; // relative y
+
         output->mothership.clients[i].client_id = i;
-        output->mothership.clients[i].mothership_distance =
-            sqrt(input->clients[i].coord[parser_x] * input->clients[i].coord[parser_x] + input->clients[i].coord[parser_y] * input->clients[i].coord[parser_y]);
-        output->mothership.clients[i].airway = /* TODO */ -1;
+        output->mothership.clients[i].mothership_distance = sqrt(rx * rx + ry * ry);
+        output->mothership.clients[i].airway = (airway_t) (atan2(ry, rx) / AIRWAY_SIZE);
 
         clients_ids_map[i] = input->clients[i].id;
     }
@@ -237,7 +242,7 @@ void print_simulation_data(sim_data* data) {
             data->mothership.package_nbr);
     printf("\n\n\t\033[31mClients :");
     for (unsigned long int i = 0 ; i < data->mothership.client_nbr ; ++i) {
-        printf("\n\t\tClient #%lu :\n\t\t\tID :                        %lu\n\t\t\tDistance from Mother Ship : %.2lf\n\t\t\tAirway :                    %lu",
+        printf("\n\t\tClient #%lu :\n\t\t\tID :                        %lu\n\t\t\tDistance from Mother Ship : %.2lf\n\t\t\tAirway :                    %ld",
                 i,
                 data->mothership.clients[i].client_id,
                 data->mothership.clients[i].mothership_distance,

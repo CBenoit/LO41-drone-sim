@@ -14,8 +14,8 @@
 typedef unsigned long int priority_t;
 typedef unsigned long int client_id_t;
 typedef unsigned long int ammo_t;
-typedef unsigned long int airway_t;
 typedef unsigned long int ticks_t;
+typedef long int airway_t;
 typedef double power_t;
 typedef double distance_t;
 typedef double weigth_t;
