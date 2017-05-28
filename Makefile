@@ -40,6 +40,7 @@ COMPFLAGS       = -Wdisabled-optimization -Wstrict-prototypes -Wbad-function-cas
 				  -Wmain -Wswitch-default -Wunreachable-code -Winline -Wfloat-equal         \
 				  -Wundef -Wcast-align -Wredundant-decls -Winit-self -Wshadow -Wswitch-enum \
 				  -Wmissing-declarations 
+LEAKCHECKER = valgrind --leak-check=full
 #Compile standard
 COMPSTANDARD    = -std=gnu99
 #Includes' flags
