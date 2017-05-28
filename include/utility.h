@@ -11,8 +11,15 @@
 #ifndef DRONE_SIM_UTILITY
 #define DRONE_SIM_UTILITY
 
+const int MOTHERSHIP_SIGNAL;
+
 int* open_pipes(unsigned int);
+
 void close_pipes(unsigned int, int*);
+
+void empty_handler(int sig);
+
+void wait_mothership_signal(void);
 
 #endif /* ifndef DRONE_SIM_UTILITY */
 

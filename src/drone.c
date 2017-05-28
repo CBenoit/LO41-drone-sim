@@ -10,15 +10,23 @@
 
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdio.h>
 
 #include "utility.h"
 #include "drone.h"
 
 void drone_main(drone_t me, int* clients_pipes, unsigned int number_of_clients, int my_pipes[2]) {
     // Waiting for the Mother Ship to be ready
-    pause();
+    wait_mothership_signal();
 
-    // TODO
+    for (;;) {
+        // 1 tick
+
+        printf("drone tick\n");
+        // TODO
+
+        wait_mothership_signal();
+    }
 
     close_pipes(number_of_clients, clients_pipes);
     close(my_pipes[1]);

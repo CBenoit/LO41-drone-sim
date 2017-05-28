@@ -8,14 +8,22 @@
 //                                                                                               //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <unistd.h>
+#include <stdio.h>
 
 #include "hunter.h"
+#include "utility.h"
 
 void hunter_main(hunter_t me) {
     // Waiting for the Mother Ship to be ready
-    pause();
+    wait_mothership_signal();
 
-    // TODO
+    for (;;) {
+        // 1 tick
+
+        printf("hunter tick\n");
+        // TODO
+
+        wait_mothership_signal();
+    }
 }
 

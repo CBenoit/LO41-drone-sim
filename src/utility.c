@@ -11,8 +11,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include "utility.h"
+
+const int MOTHERSHIP_SIGNAL = SIGUSR1;
 
 int* open_pipes(unsigned int number_of_pipes) {
     int* pipes = (int*) malloc(2 * number_of_pipes * sizeof(int));
@@ -30,5 +33,16 @@ void close_pipes(unsigned int number_of_pipes, int* pipes) {
         close(pipes[number_of_pipes * 2 + 1]);
         close(pipes[number_of_pipes * 2]);
     }
+}
+
+void empty_handler(int sig) {
+}
+
+void wait_mothership_signal() {
+    sigset_t mask;
+    sigfillset(&mask);
+    sigdelset(&mask, MOTHERSHIP_SIGNAL);
+    signal(MOTHERSHIP_SIGNAL, &empty_handler);
+    sigsuspend(&mask);
 }
 

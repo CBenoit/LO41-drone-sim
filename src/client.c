@@ -9,16 +9,24 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <stdlib.h>
-#include <unistd.h>
+#include <stdio.h>
 
 #include "client.h"
 #include "utility.h"
 
 void client_main(int read_filedesc, int* drones_pipes, unsigned int number_of_drones) {
     // Waiting for the Mother Ship to be ready
-    pause();
+    wait_mothership_signal();
 
-    // TODO
+    for (;;) {
+        // 1 tick
+
+        printf("client tick\n");
+        // TODO
+
+        wait_mothership_signal();
+    }
+
 
     close_pipes(number_of_drones, drones_pipes);
     free(drones_pipes);
