@@ -13,7 +13,7 @@
 
 #include "structs.h"
 
-void drone_main(drone_t, int*, unsigned int, int*);
+void drone_main(drone_t, int*, unsigned int, int*, int);
 
 #endif /* ifndef DRONE_SIM_DRONE */
 

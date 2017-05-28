@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <sys/msg.h>
 
 #include "parser.h"
 #include "parser_structs.h"
@@ -34,6 +35,13 @@ int main(int argc, char *argv[]) {
 }
 
 void start(sim_data* sdata) {
+    // creating message queue
+    int msgid = msgget(IPC_PRIVATE, IPC_CREAT | IPC_EXCL | 0600);
+    if (msgid == -1) {
+        perror("msgget");
+        abort();
+    }
+
     // Creating hunters
     pid_t* hunters_p = (pid_t*) malloc(sdata->hunter_nbr * sizeof(pid_t));
     for (unsigned int i = sdata->hunter_nbr ; i-- ;) {
@@ -63,7 +71,7 @@ void start(sim_data* sdata) {
             int this_drone_pipes[2] = { drones_pipes[2*i], drones_pipes[2*i + 1] };
             free(drones_pipes);
             // drone_main(...) should free clients_pipes and close this_drone_pipes
-            drone_main(sdata->drones[i], clients_pipes, sdata->mothership.client_nbr, this_drone_pipes);
+            drone_main(sdata->drones[i], clients_pipes, sdata->mothership.client_nbr, this_drone_pipes, msgid);
             exit(EXIT_SUCCESS);
         }
     }
@@ -96,6 +104,7 @@ void start(sim_data* sdata) {
     close_pipes(sdata->drone_nbr, drones_pipes);
     free(drones_pipes);
     // mothership_main(...) should free all that.
-    mothership_main(sdata, drones_p, clients_p, hunters_p);
+    mothership_main(sdata, drones_p, clients_p, hunters_p, msgid);
+    msgctl(msgid, IPC_RMID, NULL);
 }
 

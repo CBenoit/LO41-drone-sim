@@ -15,7 +15,7 @@
 
 #include "parser_structs.h"
 
-void mothership_main(sim_data*, pid_t*, pid_t*, pid_t*);
+void mothership_main(sim_data*, pid_t*, pid_t*, pid_t*, int);
 
 #endif /* ifndef DRONE_SIM_MOTHERSHIP */
 

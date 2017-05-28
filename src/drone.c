@@ -15,7 +15,7 @@
 #include "utility.h"
 #include "drone.h"
 
-void drone_main(drone_t me, int* clients_pipes, unsigned int number_of_clients, int my_pipes[2]) {
+void drone_main(drone_t me, int* clients_pipes, unsigned int number_of_clients, int my_pipes[2], int msgid) {
     // Waiting for the Mother Ship to be ready
     wait_mothership_signal();
 

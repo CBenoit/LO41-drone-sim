@@ -9,6 +9,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <sys/types.h>
+#include <sys/msg.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -20,17 +21,25 @@ static void send_sig_to_list(int sig, pid_t* list, size_t len);
 static void send_sig_to_all(int sig);
 static void fail_fast(const char* message);
 
-static sim_data* m_sdata = NULL;
-static pid_t* m_drones_p = NULL;
+static sim_data* m_sdata  = NULL;
+static pid_t* m_drones_p  = NULL;
 static pid_t* m_clients_p = NULL;
 static pid_t* m_hunters_p = NULL;
+static int m_msgid;
 
-void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* hunters_p) {
+void interruption_handler(int sig) {
+    fail_fast("Interruption handler...\n");
+}
+
+void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* hunters_p, int msgid) {
     // initializing
     m_sdata = sdata;
     m_drones_p = drones_p;
     m_clients_p = clients_p;
     m_hunters_p = hunters_p;
+    m_msgid = msgid;
+
+    signal(SIGINT, &interruption_handler);
 
     for (;;) {
         // 1 tick
@@ -64,6 +73,7 @@ void send_sig_to_all(int sig) {
 void fail_fast(const char* message) {
     printf(message);
     send_sig_to_all(SIGKILL);
+    msgctl(m_msgid, IPC_RMID, NULL);
     abort();
 }
 
