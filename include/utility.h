@@ -8,17 +8,11 @@
 //                                                                                               //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef DRONE_SIM_PACKAGE
-#define DRONE_SIM_PACKAGE
+#ifndef DRONE_SIM_UTILITY
+#define DRONE_SIM_UTILITY
 
-#include "typedefs.h"
+int* open_pipes(unsigned int);
+void close_pipes(unsigned int, int*);
 
-typedef struct {
-    priority_t priority;
-    weigth_t weight;
-    volume_t volume;
-    client_id_t client_id;
-} package_t;
-
-#endif /* ifndef DRONE_SIM_PACKAGE */
+#endif /* ifndef DRONE_SIM_UTILITY */
 

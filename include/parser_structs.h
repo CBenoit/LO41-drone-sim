@@ -13,9 +13,7 @@
 #define DRONE_SIM_PARSER_STRUCTS
 
 #include "typedefs.h"
-#include "drone.h"
-#include "hunter.h"
-#include "mothership.h"
+#include "structs.h"
 
 enum {
     parser_x = 0,

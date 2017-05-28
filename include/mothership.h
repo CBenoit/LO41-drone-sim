@@ -11,19 +11,11 @@
 #ifndef DRONE_SIM_MOTHERSHIP
 #define DRONE_SIM_MOTHERSHIP
 
-#include "typedefs.h"
-#include "client.h"
-#include "package.h"
+#include <unistd.h>
 
-typedef struct {
-    unsigned long int package_throughput; // number of packages per tick
-    unsigned long int power_loading_slots;  //
-    power_t power_throughput;
-    unsigned int client_nbr;
-    client_t* clients;
-    unsigned int package_nbr;
-    package_t* packages;
-} mothership_t;
+#include "parser_structs.h"
+
+void mothership_main(sim_data*, pid_t*, pid_t*, pid_t*);
 
 #endif /* ifndef DRONE_SIM_MOTHERSHIP */
 

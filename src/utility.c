@@ -8,12 +8,27 @@
 //                                                                                               //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef DRONE_SIM_HUNTER
-#define DRONE_SIM_HUNTER
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
 
-#include "structs.h"
+#include "utility.h"
 
-void hunter_main(hunter_t);
+int* open_pipes(unsigned int number_of_pipes) {
+    int* pipes = (int*) malloc(2 * number_of_pipes * sizeof(int));
+    for (unsigned int i = number_of_pipes ; i-- ;) {
+        if (pipe(pipes + 2*i)) {
+            printf ("Failed to create pipes. Aborting.\n");
+            abort();
+        }
+    }
+    return pipes;
+}
 
-#endif /* ifndef DRONE_SIM_HUNTER */
+void close_pipes(unsigned int number_of_pipes, int* pipes) {
+    while(number_of_pipes--) {
+        close(pipes[number_of_pipes * 2 + 1]);
+        close(pipes[number_of_pipes * 2]);
+    }
+}
 

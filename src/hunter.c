@@ -8,12 +8,14 @@
 //                                                                                               //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef DRONE_SIM_HUNTER
-#define DRONE_SIM_HUNTER
+#include <unistd.h>
 
-#include "structs.h"
+#include "hunter.h"
 
-void hunter_main(hunter_t);
+void hunter_main(hunter_t me) {
+    // Waiting for the Mother Ship to be ready
+    pause();
 
-#endif /* ifndef DRONE_SIM_HUNTER */
+    // TODO
+}
 

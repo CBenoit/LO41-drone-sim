@@ -13,38 +13,21 @@
 #include <unistd.h>
 
 #include "parser.h"
+#include "parser_structs.h"
+#include "mothership.h"
+#include "drone.h"
+#include "client.h"
+#include "hunter.h"
+#include "utility.h"
 
 void start(sim_data*);
-void mothership_main(sim_data*, pid_t*, pid_t*, pid_t*);
-void drone_main(drone_t, int*, unsigned int, int*);
-void client_main(int, int*, unsigned int);
-void hunter_main(hunter_t);
-
-int* open_pipes(unsigned int);
-void close_pipes(unsigned int, int*);
-
-int* open_pipes(unsigned int number_of_pipes) {
-    int* pipes = (int*) malloc(2 * number_of_pipes * sizeof(int));
-    for (unsigned int i = number_of_pipes ; i-- ;) {
-        if (pipe(pipes + 2*i)) {
-            printf ("Failed to create pipes. Aborting.\n");
-            abort();
-        }
-    }
-    return pipes;
-}
-
-void close_pipes(unsigned int number_of_pipes, int* pipes) {
-    while(number_of_pipes--) {
-        close(pipes[number_of_pipes * 2 + 1]);
-        close(pipes[number_of_pipes * 2]);
-    }
-}
 
 int main(int argc, char *argv[]) {
     sim_data data;
     load_simulation(&data, "test.csv");
     printf("\n\n----- Simulation data recap -----\n\n");
+    print_simulation_data(&data);
+    printf("\n\n------ Starting simulation ------\n\n");
     start(&data);
     unload_simulation(&data);
     return EXIT_SUCCESS;
@@ -59,13 +42,14 @@ void start(sim_data* sdata) {
             // I'm a hunter !
             free(hunters_p);
             hunter_main(sdata->hunters[i]);
+            exit(EXIT_SUCCESS);
         }
     }
 
     // Creating pipes so that drones and clients can communicate
     int* clients_pipes = open_pipes(sdata->mothership.client_nbr);
     int* drones_pipes  = open_pipes(sdata->drone_nbr);
-    
+
     // Creating drones
     pid_t* drones_p = (pid_t*) malloc(sdata->drone_nbr * sizeof(pid_t));
     for (unsigned int i = sdata->drone_nbr ; i-- ;) {
@@ -80,7 +64,7 @@ void start(sim_data* sdata) {
             free(drones_pipes);
             // drone_main(...) should free clients_pipes and close this_drone_pipes
             drone_main(sdata->drones[i], clients_pipes, sdata->mothership.client_nbr, this_drone_pipes);
-            exit(0);
+            exit(EXIT_SUCCESS);
         }
     }
 
@@ -103,7 +87,7 @@ void start(sim_data* sdata) {
 
             // Client ! Go !
             client_main(filedesc, drones_pipes, sdata->drone_nbr);
-            exit(0);
+            exit(EXIT_SUCCESS);
         }
     }
 
@@ -115,30 +99,3 @@ void start(sim_data* sdata) {
     mothership_main(sdata, drones_p, clients_p, hunters_p);
 }
 
-void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* hunters_p) {
-    free(drones_p);
-    free(clients_p);
-    free(hunters_p);
-}
-
-void drone_main(drone_t me, int* clients_pipes, unsigned int number_of_clients, int my_pipes[2]) {
-    // Waiting for the Mother Ship to be ready
-    pause();
-
-    close_pipes(number_of_clients, clients_pipes);
-    close(my_pipes[1]);
-    free(clients_pipes);
-}
-
-void client_main(int read_filedesc, int* drones_pipes, unsigned int number_of_drones) {
-    // Waiting for the Mother Ship to be ready
-    pause();
-
-    close_pipes(number_of_drones, drones_pipes);
-    free(drones_pipes);
-}
-
-void hunter_main(hunter_t me) {
-    // Waiting for the Mother Ship to be ready
-    pause();
-}

@@ -11,13 +11,7 @@
 #ifndef DRONE_SIM_CLIENT
 #define DRONE_SIM_CLIENT
 
-#include "typedefs.h"
-
-typedef struct {
-    client_id_t client_id;
-    distance_t mothership_distance; // distance to the mothership
-    airway_t airway;
-} client_t;
+void client_main(int, int*, unsigned int);
 
 #endif /* ifndef DRONE_SIM_CLIENT */
 

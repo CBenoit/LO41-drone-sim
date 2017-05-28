@@ -8,12 +8,20 @@
 //                                                                                               //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef DRONE_SIM_HUNTER
-#define DRONE_SIM_HUNTER
+#include <stdlib.h>
+#include <unistd.h>
 
-#include "structs.h"
+#include "utility.h"
+#include "drone.h"
 
-void hunter_main(hunter_t);
+void drone_main(drone_t me, int* clients_pipes, unsigned int number_of_clients, int my_pipes[2]) {
+    // Waiting for the Mother Ship to be ready
+    pause();
 
-#endif /* ifndef DRONE_SIM_HUNTER */
+    // TODO
+
+    close_pipes(number_of_clients, clients_pipes);
+    close(my_pipes[1]);
+    free(clients_pipes);
+}
 

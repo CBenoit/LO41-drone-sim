@@ -11,19 +11,9 @@
 #ifndef DRONE_SIM_DRONE
 #define DRONE_SIM_DRONE
 
-#include "typedefs.h"
-#include "package.h"
+#include "structs.h"
 
-typedef struct {
-    power_t fuel;
-    power_t max_fuel;
-    weigth_t max_package_weight;
-    volume_t max_package_volume;
-    package_t* package;
-    distance_t client_distance;
-    distance_t mothership_distance;
-    // client_distance + mothership_distance should be a constant sum at runtime.
-} drone_t;
+void drone_main(drone_t, int*, unsigned int, int*);
 
 #endif /* ifndef DRONE_SIM_DRONE */
 

@@ -8,12 +8,16 @@
 //                                                                                               //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef DRONE_SIM_HUNTER
-#define DRONE_SIM_HUNTER
+#include <sys/types.h>
+#include <stdlib.h>
 
-#include "structs.h"
+#include "mothership.h"
 
-void hunter_main(hunter_t);
+void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* hunters_p) {
+    // TODO
 
-#endif /* ifndef DRONE_SIM_HUNTER */
+    free(drones_p);
+    free(clients_p);
+    free(hunters_p);
+}
 
