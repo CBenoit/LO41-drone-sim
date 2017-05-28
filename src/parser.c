@@ -186,6 +186,17 @@ client_id_t find(unsigned long value, unsigned long* array, unsigned long size) 
     abort();
 }
 
+void load_simulation(sim_data* data, const char* file_path) {
+    parser_data pdata;
+    load(&pdata, file_path);
+    load_simulation_data(&pdata, data);
+    unload(&pdata);
+}
+
+void unload_simulation(sim_data* data) {
+    unload_simulation_data(data);
+}
+
 void print_parsed_data(parser_data* data) {
     printf("Mother Ship :\n\tx : %.2lf\n\ty : %.2lf\n\tPackage throughput : %lu\n\tReloader throughput : %.2lf\n\t%lu reloaders.\n\n",
             data->mothership.coord[parser_x], data->mothership.coord[parser_y], data->mothership.package_throughput, data->mothership.reloader_throughput, data->mothership.reloader_nbr);

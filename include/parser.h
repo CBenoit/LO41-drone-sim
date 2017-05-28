@@ -22,6 +22,10 @@ void load_simulation_data(parser_data* input, sim_data* output);
 
 void unload_simulation_data(sim_data* data);
 
+void load_simulation(sim_data* data, const char* file_path);
+
+void unload_simulation(sim_data* data);
+
 void print_parsed_data(parser_data* data);
 
 void print_simulation_data(sim_data* data);
