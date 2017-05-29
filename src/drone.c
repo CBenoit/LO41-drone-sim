@@ -11,11 +11,13 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <sys/msg.h>
 
 #include "utility.h"
 #include "drone.h"
+#include "mq_communication.h"
 
-void drone_main(drone_t me, int* clients_pipes, unsigned int number_of_clients, int my_pipes[2], int msgid) {
+void drone_main(drone_t me, int* clients_pipes, unsigned int number_of_clients, int my_pipes[2], int msqid) {
     // Waiting for the Mother Ship to be ready
     wait_mothership_signal();
 
@@ -23,7 +25,13 @@ void drone_main(drone_t me, int* clients_pipes, unsigned int number_of_clients, 
         // 1 tick
 
         printf("drone tick\n");
-        // TODO
+
+        printf("drone: sending message to mothership.\n");
+        message_t message = create_empty_message(getppid(), DRONE_MSG);
+        if (msgsnd(msqid, &message, sizeof(message_t), IPC_NOWAIT) == -1) {
+            perror("msgsnd");
+            abort();
+        }
 
         wait_mothership_signal();
     }

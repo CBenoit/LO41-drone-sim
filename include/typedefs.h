@@ -20,6 +20,7 @@ typedef double power_t;
 typedef double distance_t;
 typedef double weigth_t;
 typedef double volume_t;
+typedef unsigned int mq_msg_id_t;
 
 #endif /* ifndef DRONE_SIM_TYPEDEFS */
 

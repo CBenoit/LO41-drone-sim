@@ -13,39 +13,63 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
+#include <errno.h>
 
 #include "mothership.h"
 #include "utility.h"
+#include "mq_communication.h"
 
 static void send_sig_to_list(int sig, pid_t* list, size_t len);
 static void send_sig_to_all(int sig);
 static void fail_fast(const char* message);
+static void interruption_handler(int sig);
 
 static sim_data* m_sdata  = NULL;
 static pid_t* m_drones_p  = NULL;
 static pid_t* m_clients_p = NULL;
 static pid_t* m_hunters_p = NULL;
-static int m_msgid;
+static int m_msqid;
 
-void interruption_handler(int sig) {
-    fail_fast("Interruption handler...\n");
-}
-
-void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* hunters_p, int msgid) {
+void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* hunters_p, int msqid) {
     // initializing
     m_sdata = sdata;
     m_drones_p = drones_p;
     m_clients_p = clients_p;
     m_hunters_p = hunters_p;
-    m_msgid = msgid;
+    m_msqid = msqid;
 
     signal(SIGINT, &interruption_handler);
 
     for (;;) {
-        // 1 tick
+        // check messages from drones
+        printf("Mothership check messages.\n");
+        bool continue_read = true;
+        while (continue_read) {
+            message_t message;
+            if (msgrcv(m_msqid, &message, sizeof(message_t), getpid(), IPC_NOWAIT) == -1) {
+                if (errno == ENOMSG) {
+                    continue_read = false;
+                    printf("No more message.\n");
+                } else {
+                    perror("msgrcv");
+                    fail_fast("Aborting...\n");
+                }
+            } else {
+                switch (message.msg_id) {
+                    case DRONE_MSG:
+                        printf("received drone message.\n");
+                        break;
+                    case HUNTER_MSG:
+                        printf("received hunter message.\n");
+                        break;
+                    default:
+                        fail_fast("unexpected message received.\n");
+                        // no need to break
+                }
+            }
+        }
 
-        // TODO
-        printf("mothership tick\n");
         send_sig_to_all(MOTHERSHIP_SIGNAL);
         sleep(1);
     }
@@ -73,7 +97,11 @@ void send_sig_to_all(int sig) {
 void fail_fast(const char* message) {
     printf(message);
     send_sig_to_all(SIGKILL);
-    msgctl(m_msgid, IPC_RMID, NULL);
+    msgctl(m_msqid, IPC_RMID, NULL);
     abort();
+}
+
+void interruption_handler(int sig) {
+    fail_fast("Interruption handler...\n");
 }
 

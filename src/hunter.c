@@ -13,7 +13,7 @@
 #include "hunter.h"
 #include "utility.h"
 
-void hunter_main(hunter_t me) {
+void hunter_main(hunter_t me, int msqid) {
     // Waiting for the Mother Ship to be ready
     wait_mothership_signal();
 

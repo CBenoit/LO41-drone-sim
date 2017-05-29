@@ -8,12 +8,31 @@
 //                                                                                               //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef DRONE_SIM_HUNTER
-#define DRONE_SIM_HUNTER
+#ifndef DRONE_SIM_MQ_COMMUNICATION
+#define DRONE_SIM_MQ_COMMUNICATION
 
-#include "structs.h"
+#include <sys/types.h>
+#include <stdint.h>
 
-void hunter_main(hunter_t, int msqid);
+#include "typedefs.h"
 
-#endif /* ifndef DRONE_SIM_HUNTER */
+#define MSG_CONTENT_SIZE_MAX 256
+
+enum {
+    MOTHERSHIP_MSG,
+    DRONE_MSG,
+    HUNTER_MSG
+};
+
+typedef struct {
+    long type;
+    pid_t pid;
+    mq_msg_id_t msg_id;
+    uint8_t content[MSG_CONTENT_SIZE_MAX];
+} message_t;
+
+message_t create_empty_message(pid_t dest, mq_msg_id_t msg_id);
+message_t create_initialized_message(pid_t dest, mq_msg_id_t msg_id, uint8_t content[], size_t content_size);
+
+#endif /* ifndef DRONE_SIM_MOTHERSHIP_DRONE_COMMUNICATION */
 
