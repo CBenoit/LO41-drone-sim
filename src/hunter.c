@@ -9,20 +9,33 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
+#include <unistd.h>
+#include <signal.h>
 
-#include "hunter.h"
+
 #include "utility.h"
+#include "hunter.h"
 
 void hunter_main(hunter_t me, int msqid) {
+    sigset_t mask;
+    sigaddset(&mask, MOTHERSHIP_SIGNAL);
+    sigprocmask(SIG_BLOCK, &mask, NULL);
+
+    // I am ready
+    sem_post(mother_sem);
+
     // Waiting for the Mother Ship to be ready
     wait_mothership_signal();
 
+    int val = 0;
     for (;;) {
         // 1 tick
 
-        printf("hunter tick\n");
+        ++val;
+        printf("Hunter:\t%s\n", val%2 ? "tic" : "tac");
         // TODO
 
+        sem_post(mother_sem);
         wait_mothership_signal();
     }
 }

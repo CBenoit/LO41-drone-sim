@@ -11,7 +11,17 @@
 #ifndef DRONE_SIM_UTILITY
 #define DRONE_SIM_UTILITY
 
-const int MOTHERSHIP_SIGNAL;
+#include <semaphore.h>
+#include <signal.h>
+
+#define MOTHER_SEM_NAME "/tiwindesem_mother"
+
+enum {
+    MOTHERSHIP_SIGNAL = SIGUSR1
+};
+
+sem_t* mother_sem;
+
 
 int* open_pipes(unsigned int);
 

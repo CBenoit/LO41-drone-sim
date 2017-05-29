@@ -15,8 +15,6 @@
 
 #include "utility.h"
 
-const int MOTHERSHIP_SIGNAL = SIGUSR1;
-
 int* open_pipes(unsigned int number_of_pipes) {
     int* pipes = (int*) malloc(2 * number_of_pipes * sizeof(int));
     for (unsigned int i = number_of_pipes ; i-- ;) {

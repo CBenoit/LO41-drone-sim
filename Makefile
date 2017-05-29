@@ -48,7 +48,7 @@ INCLUDEDIR      = -I include/
 #Libraries paths' flags
 LIBSDIR         =
 #Libraries links' flags
-LINKS           = -lm
+LINKS           = -lm -pthread
 #Extra compiler flags
 DEFINES         =
 #Compiler argument to name the output file

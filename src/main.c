@@ -11,6 +11,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <semaphore.h>
 #include <sys/msg.h>
 
 #include "parser.h"
@@ -20,6 +22,7 @@
 #include "client.h"
 #include "hunter.h"
 #include "utility.h"
+
 
 void start(sim_data*);
 
@@ -35,9 +38,19 @@ int main(int argc, char *argv[]) {
 }
 
 void start(sim_data* sdata) {
+    sem_unlink(MOTHER_SEM_NAME);
+    mother_sem = sem_open(MOTHER_SEM_NAME, O_CREAT | O_EXCL, 0644, 0);
+    if (mother_sem == SEM_FAILED) {
+        perror("Failed to create semaphore. Aborting...");
+        abort();
+    }
+
     // creating message queue
     int msqid = msgget(IPC_PRIVATE, IPC_CREAT | IPC_EXCL | 0600);
     if (msqid == -1) {
+        sem_unlink(MOTHER_SEM_NAME);
+        sem_close(mother_sem);
+        sem_destroy(mother_sem);
         perror("msgget");
         abort();
     }
@@ -99,12 +112,12 @@ void start(sim_data* sdata) {
         }
     }
 
+    printf("a\n");
     close_pipes(sdata->mothership.client_nbr, clients_pipes);
     free(clients_pipes);
     close_pipes(sdata->drone_nbr, drones_pipes);
     free(drones_pipes);
     // mothership_main(...) should free all that.
     mothership_main(sdata, drones_p, clients_p, hunters_p, msqid);
-    msgctl(msqid, IPC_RMID, NULL);
 }
 
