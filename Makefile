@@ -33,13 +33,12 @@ INHIBITLINKING  = 0
 #Compiler command
 COMPILER        = gcc
 #compiler flags
-COMPFLAGS       = -Wdisabled-optimization -Wstrict-prototypes -Wbad-function-cast       \
+COMPFLAGS       = -Wdisabled-optimization -Wstrict-prototypes -Wmissing-declarations    \
 				  -Wvector-operation-performance -Winvalid-pch -Wunused -Wconversion    \
 				  -Wlogical-op -Wuninitialized -Wsuggest-final-types -Wdouble-promotion \
 				  -Wformat -Wmissing-include-dirs -Wall -pedantic -pedantic-errors      \
 				  -Wmain -Wswitch-default -Wunreachable-code -Winline -Wfloat-equal     \
-				  -Wundef -Wcast-align -Wredundant-decls -Winit-self -Wshadow           \
-				  -Wmissing-declarations 
+				  -Wundef -Wcast-align -Wredundant-decls -Winit-self -Wshadow
 LEAKCHECKER = valgrind --leak-check=full
 #Compile standard
 COMPSTANDARD    = -std=gnu11

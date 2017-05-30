@@ -13,11 +13,13 @@
 
 #include <sys/types.h>
 
+#include "typedefs.h"
+
 typedef enum {
     // mothership messages
     LOAD_PACKAGE_MSG,
     EXPLOSE_MSG,
-    REFUEL_DRONE_MSG,
+    POWER_DRONE_MSG,
     DEPART_DRONE_MSG,
     POWER_OFF_MSG,
 
@@ -27,8 +29,8 @@ typedef enum {
     // drone messages
     ASK_DEPARTURE_MSG,
     ASK_PACKAGE_MSG,
-    ASK_REFUEL_MSG,
-    END_REFUEL_MSG,
+    ASK_POWER_MSG,
+    END_POWER_MSG,
     NOTIFY_ARRIVAL_MSG,
 
     // misc
@@ -42,13 +44,18 @@ typedef struct {
     union {
         int int_value;
         double double_value;
+        ticks_t ticks_value;
+        power_t power_value;
+        identity_t identity_value;
     };
 } message_t;
 
 message_t make_message(pid_t dest, mq_msg_id_t msg_id);
 message_t make_int_message(pid_t dest, mq_msg_id_t msg_id, int value);
 message_t make_double_message(pid_t dest, mq_msg_id_t msg_id, double value);
-
+message_t make_ticks_message(pid_t dest, mq_msg_id_t msg_id, ticks_t value);
+message_t make_power_message(pid_t dest, mq_msg_id_t msg_id, power_t value);
+message_t make_identity_message(pid_t dest, mq_msg_id_t msg_id, identity_t value);
 
 #endif /* ifndef DRONE_SIM_MQ_COMMUNICATION */
 

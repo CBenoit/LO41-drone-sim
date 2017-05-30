@@ -19,7 +19,7 @@ typedef struct {
 } hunter_t;
 
 typedef struct {
-    client_id_t client_id;
+    identity_t id;
     distance_t mothership_distance; // distance to the mothership
     airway_t airway;
 } client_t;
@@ -28,10 +28,11 @@ typedef struct {
     priority_t priority;
     weigth_t weight;
     volume_t volume;
-    client_id_t client_id;
+    identity_t client_id;
 } package_t;
 
 typedef struct {
+    identity_t id;
     power_t fuel;
     power_t max_fuel;
     weigth_t max_package_weight;
@@ -44,7 +45,7 @@ typedef struct {
 
 typedef struct {
     unsigned long int package_throughput; // number of packages per tick
-    unsigned long int power_loading_slots;  //
+    unsigned long int power_loading_slots; // number of loading slots
     power_t power_throughput;
     unsigned int client_nbr;
     client_t* clients;

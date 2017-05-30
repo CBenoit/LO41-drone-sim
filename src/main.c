@@ -115,12 +115,11 @@ void start(sim_data* sdata) {
         }
     }
 
-    printf("a\n");
     close_pipes(sdata->mothership.client_nbr, clients_pipes);
     free(clients_pipes);
     close_pipes(sdata->drone_nbr, drones_pipes);
     free(drones_pipes);
-    // mothership_main(...) should free all that.
+    // mothership_main function should free all that.
     mothership_main(sdata, drones_p, clients_p, hunters_p, msqid);
 }
 

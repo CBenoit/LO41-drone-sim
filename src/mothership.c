@@ -19,89 +19,154 @@
 #include <fcntl.h>
 #include <time.h>
 #include <sys/time.h>
+#include <math.h>
 
 #include "mothership.h"
 #include "utility.h"
 #include "mq_communication.h"
+#include "parser.h"
+#include "typedefs.h"
 
 #define TICK_MIN_TIME_MSEC 500
 
+static void init_timer(void);
+static void wait_timer(void);
 static void send_sig_to_list(int sig, pid_t* list, size_t len);
-static void tick(void);
 static void send_sig_to_all(int sig);
+static void tick(void);
 static void fail_fast(const char* message);
-static void interruption_handler(int sig);
 static void wait_for(unsigned long);
-
 static void clean(void);
+static void remove_available_drone(pid_t drone_pid);
+static void add_available_drone(pid_t drone_pid);
+static void swap_pid(pid_t* array, size_t i, size_t j);
+static bool find_drone(identity_t id, drone_t* drone_found);
+static bool find_appropriate_package_for_drone(identity_t drone_id, identity_t* package_id_found);
+
+static void interruption_handler(int sig);
 
 // OOP
+static mothership_t* this;
+
 static sim_data* m_sdata  = NULL;
 static pid_t* m_drones_p  = NULL;
 static pid_t* m_clients_p = NULL;
 static pid_t* m_hunters_p = NULL;
 static int m_msqid;
 
+static unsigned long int m_remaining_power_loading_slots = 0;
+
+static size_t m_available_drones_nbr;
+static pid_t* m_available_drones;
+
+struct timeval m_beg_time;
+
 void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* hunters_p, int msqid) {
     // initializing
+    this = &sdata->mothership;
+
     m_sdata = sdata;
     m_drones_p = drones_p;
     m_clients_p = clients_p;
     m_hunters_p = hunters_p;
     m_msqid = msqid;
 
-    wait_for(m_sdata->drone_nbr + m_sdata->hunter_nbr + m_sdata->mothership.client_nbr);
+    m_remaining_power_loading_slots = m_sdata->mothership.power_loading_slots;
+
+    m_available_drones_nbr = m_sdata->drone_nbr;
+    m_available_drones = (pid_t*) malloc(sizeof(pid_t) * m_available_drones_nbr);
+
+    wait_for(m_sdata->drone_nbr + m_sdata->hunter_nbr + this->client_nbr);
     signal(SIGINT, &interruption_handler);
 
-    struct timeval beg_time, diff;
-    for (;;) {
-        gettimeofday(&beg_time, NULL);
-        // 1 tick
+    forever {
+        init_timer();
+
         // check messages from drones
         printf("Mothership check messages.\n");
-        bool continue_read = true;
-        while (continue_read) {
-            message_t message;
-            if (msgrcv(m_msqid, &message, sizeof(message_t), getpid(), IPC_NOWAIT) == -1) {
-                if (errno == ENOMSG) {
-                    continue_read = false;
-                    printf("No more message.\n");
-                } else {
-                    perror("msgrcv");
-                    fail_fast("Aborting...\n");
-                }
-            } else {
-                switch (message.msg_id) {
-                    case ASK_DEPARTURE_MSG:
-                        printf("Received ask departure message.\n");
-                        break;
-                    default:
-                        fail_fast("Unexpected message received.\n");
-                        // no need to break
-                }
+        message_t message;
+        unsigned long int nbr_of_packages_that_can_be_loaded = this->package_throughput;
+        while (msgrcv(m_msqid, &message, sizeof(message_t), getpid(), IPC_NOWAIT) != -1) {
+            switch (message.msg_id) {
+                case SHOOT_DRONE_MSG:
+                    break;
+                case ASK_DEPARTURE_MSG:
+                    printf("Received ask departure message.\n");
+                    break;
+                case ASK_PACKAGE_MSG:
+                    if (nbr_of_packages_that_can_be_loaded > 0) {
+                        identity_t package_id;
+                        if (find_appropriate_package_for_drone(message.identity_value, &package_id)) {
+                            message_t answer = make_identity_message(message.pid, LOAD_PACKAGE_MSG, package_id);
+                            if (msgsnd(msqid, &answer, sizeof(message_t), IPC_NOWAIT) == -1) {
+                                fail_fast("ASK_PACKAGE_MSG: msgsnd failed!");
+                            }
+                            --nbr_of_packages_that_can_be_loaded;
+                        } else {
+                            message_t answer = make_message(message.pid, POWER_OFF_MSG);
+                            if (msgsnd(msqid, &answer, sizeof(message_t), IPC_NOWAIT) == -1) {
+                                fail_fast("ASK_PACKAGE_MSG: msgsnd failed!");
+                            }
+                        }
+                    }
+                    break;
+                case ASK_POWER_MSG:
+                    if (m_remaining_power_loading_slots > 0) {
+                        ticks_t required_ticks = (ticks_t) ceil(message.double_value / this->power_throughput);
+                        message_t answer = make_ticks_message(message.pid, POWER_DRONE_MSG, required_ticks);
+                        if (msgsnd(msqid, &answer, sizeof(message_t), IPC_NOWAIT) == -1) {
+                            fail_fast("ASK_POWER_MSG: msgsnd failed!");
+                        }
+                        --m_remaining_power_loading_slots;
+                    }
+                    break;
+                case END_POWER_MSG:
+                    ++m_remaining_power_loading_slots;
+                    break;
+                case NOTIFY_ARRIVAL_MSG:
+                    break;
+                default:
+                    fail_fast("Unexpected message received.\n");
+                    // no need to break
             }
+        }
+
+        if (errno == ENOMSG) {
+            printf("No more message.\n");
+        } else {
+            perror("msgrcv");
+            fail_fast("Aborting...\n");
         }
 
         tick();
 
-        gettimeofday(&diff, NULL);
-        diff.tv_sec -= beg_time.tv_sec;
-        if (diff.tv_usec >= beg_time.tv_usec) {
-            diff.tv_usec -= beg_time.tv_usec;
-        } else {
-            --diff.tv_sec;
-            diff.tv_usec = beg_time.tv_usec - diff.tv_usec;
-        }
-
-        diff.tv_sec = TICK_MIN_TIME_MSEC / 1000 - diff.tv_sec;
-        diff.tv_usec = (TICK_MIN_TIME_MSEC - diff.tv_sec * 1000) * 1000 - diff.tv_usec;
-        if (diff.tv_usec * 1000000 + diff.tv_usec > 0) {
-            usleep((useconds_t)(diff.tv_sec * 1000000 + diff.tv_usec));
-        }
+        wait_timer();
     }
 
     printf("exiting...\n");
     clean();
+}
+
+void init_timer() {
+    gettimeofday(&m_beg_time, NULL);
+}
+
+void wait_timer() {
+    struct timeval diff;
+    gettimeofday(&diff, NULL);
+    diff.tv_sec -= m_beg_time.tv_sec;
+    if (diff.tv_usec >= m_beg_time.tv_usec) {
+        diff.tv_usec -= m_beg_time.tv_usec;
+    } else {
+        --diff.tv_sec;
+        diff.tv_usec = m_beg_time.tv_usec - diff.tv_usec;
+    }
+
+    diff.tv_sec = TICK_MIN_TIME_MSEC / 1000 - diff.tv_sec;
+    diff.tv_usec = (TICK_MIN_TIME_MSEC - diff.tv_sec * 1000) * 1000 - diff.tv_usec;
+    if (diff.tv_usec * 1000000 + diff.tv_usec > 0) {
+        usleep((useconds_t)(diff.tv_sec * 1000000 + diff.tv_usec));
+    }
 }
 
 void send_sig_to_list(int sig, pid_t* list, size_t len) {
@@ -109,6 +174,12 @@ void send_sig_to_list(int sig, pid_t* list, size_t len) {
     for (i = 0; i < len; ++i) {
         kill(list[i], sig);
     }
+}
+
+void send_sig_to_all(int sig) {
+    send_sig_to_list(sig, m_drones_p, m_sdata->drone_nbr);
+    send_sig_to_list(sig, m_clients_p, m_sdata->mothership.client_nbr);
+    send_sig_to_list(sig, m_hunters_p, m_sdata->hunter_nbr);
 }
 
 void tick() {
@@ -120,16 +191,10 @@ void tick() {
     wait_for(m_sdata->hunter_nbr);
 }
 
-void send_sig_to_all(int sig) {
-    send_sig_to_list(sig, m_drones_p, m_sdata->drone_nbr);
-    send_sig_to_list(sig, m_clients_p, m_sdata->mothership.client_nbr);
-    send_sig_to_list(sig, m_hunters_p, m_sdata->hunter_nbr);
-}
-
 void fail_fast(const char* message) {
     printf(message);
     clean();
-    abort();
+    exit(EXIT_FAILURE);
 }
 
 void wait_for(unsigned long value) {
@@ -140,16 +205,71 @@ void wait_for(unsigned long value) {
 
 void clean() {
     send_sig_to_all(SIGKILL);
+
     free(m_drones_p);
     free(m_clients_p);
     free(m_hunters_p);
+    free(m_available_drones);
+
     sem_unlink(MOTHER_SEM_NAME);
     sem_close(mother_sem);
     sem_destroy(mother_sem);
+
     msgctl(m_msqid, IPC_RMID, NULL);
+
+    unload_simulation(m_sdata);
+}
+
+void remove_available_drone(pid_t drone_pid) {
+    bool found = false;
+    size_t i;
+    for (i = 0; i < m_available_drones_nbr; i++) {
+        if (m_available_drones[i] == drone_pid) {
+            found = true;
+            swap_pid(m_available_drones, i, m_available_drones_nbr - 1);
+        }
+    }
+
+    if (found)
+        --m_available_drones_nbr;
+}
+
+void add_available_drone(pid_t drone_pid) {
+    m_available_drones[m_available_drones_nbr] = drone_pid;
+    ++m_available_drones_nbr;
+}
+
+void swap_pid(pid_t* array, size_t i, size_t j) {
+    pid_t tmp = array[i];
+    array[i] = array[j];
+    array[j] = tmp;
 }
 
 void interruption_handler(int sig) {
     fail_fast("Interruption handler...\n");
+}
+
+bool find_drone(identity_t id, drone_t* drone_found) {
+    bool found = false;
+    size_t i;
+    for (i = m_sdata->drone_nbr; i-- ;) {
+        if (m_sdata->drones[i].id == id) {
+            found = true;
+            *drone_found = m_sdata->drones[i];
+            break;
+        }
+    }
+    return found;
+}
+
+bool find_appropriate_package_for_drone(identity_t drone_id, identity_t* package_id_found) {
+    drone_t drone;
+    if (find_drone(drone_id, &drone)) {
+        bool found = false;
+        // TODO
+        return found;
+    } else {
+        return false;
+    }
 }
 

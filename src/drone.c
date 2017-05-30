@@ -110,7 +110,7 @@ void delivering_state() {
 }
 
 void waiting_departure_auth_state() {
-    message_t message = make_message(getppid(), ASK_DEPARTURE_MSG);
+    message_t message = make_identity_message(getppid(), ASK_DEPARTURE_MSG, m_me.id);
     do {
         send(&message);
         tick();
@@ -119,11 +119,11 @@ void waiting_departure_auth_state() {
 }
 
 void refueling_state() {
-    message_t message = make_double_message(getppid(), ASK_REFUEL_MSG, m_me.max_fuel - m_me.fuel);
+    message_t message = make_double_message(getppid(), ASK_POWER_MSG, m_me.max_fuel - m_me.fuel);
     do {
         send(&message);
         tick();
-    } while (m_last_message.msg_id != REFUEL_DRONE_MSG);
+    } while (m_last_message.msg_id != POWER_DRONE_MSG);
 
     int waiting_time = m_last_message.int_value;
 
@@ -131,14 +131,14 @@ void refueling_state() {
         tick();
     }
 
-    message.msg_id = END_REFUEL_MSG;
+    message.msg_id = END_POWER_MSG;
     send(&message);
 
     m_state.run = &loading_state;
 }
 
 void loading_state() {
-    message_t message = make_message(getppid(), ASK_PACKAGE_MSG);
+    message_t message = make_identity_message(getppid(), ASK_PACKAGE_MSG, m_me.id);
     do {
         send(&message);
         tick();

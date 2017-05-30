@@ -21,7 +21,7 @@
 
 static void count(parser_data* data, FILE* file);
 static void parse(parser_data* data, FILE* file);
-static client_id_t find(unsigned long value, unsigned long* array, unsigned long size);
+static identity_t find(unsigned long value, unsigned long* array, unsigned long size);
 
 void load(parser_data* data, const char* file_path) {
     FILE* file = fopen(file_path, "r");
@@ -127,14 +127,14 @@ void load_simulation_data(parser_data* input, sim_data* output) {
     output->mothership.client_nbr = input->client_nbr;
     output->mothership.package_nbr = input->package_nbr;
 
-    client_id_t* clients_ids_map = malloc(output->mothership.client_nbr * sizeof(client_id_t));
+    identity_t* clients_ids_map = malloc(output->mothership.client_nbr * sizeof(identity_t));
 
     output->mothership.clients  = malloc(output->mothership.client_nbr  * sizeof(client_t));
     for (uint_fast32_t i = output->mothership.client_nbr ; i-- ;) {
         double rx = input->clients[i].coord[parser_x] - input->mothership.coord[parser_x]; // relative x
         double ry = input->clients[i].coord[parser_y] - input->mothership.coord[parser_y]; // relative y
 
-        output->mothership.clients[i].client_id = i;
+        output->mothership.clients[i].id = i;
         output->mothership.clients[i].mothership_distance = sqrt(rx * rx + ry * ry);
         output->mothership.clients[i].airway = (airway_t) (atan2(ry, rx) / AIRWAY_SIZE);
 
@@ -155,6 +155,7 @@ void load_simulation_data(parser_data* input, sim_data* output) {
     output->drone_nbr = input->drone_nbr;
     output->drones = malloc(output->drone_nbr * sizeof(drone_t));
     for (uint_fast32_t i = output->drone_nbr ; i-- ;) {
+        output->drones[i].id = i;
         output->drones[i].max_fuel = input->drones[i].power_capacity;
         output->drones[i].fuel = output->drones[i].max_fuel;
         output->drones[i].max_package_weight = input->drones[i].trunk.weight_capacity;
@@ -191,7 +192,7 @@ void unload_simulation_data(sim_data* data) {
     data->hunters = NULL;
 }
 
-client_id_t find(unsigned long value, unsigned long* array, unsigned long size) {
+identity_t find(unsigned long value, unsigned long* array, unsigned long size) {
     for (unsigned long i = size ; i-- ;) {
         if (array[i] == value) {
             return i;
@@ -254,7 +255,7 @@ void print_simulation_data(sim_data* data) {
     for (unsigned long int i = 0 ; i < data->mothership.client_nbr ; ++i) {
         printf("\n\t\tClient #%lu :\n\t\t\tID :                        %lu\n\t\t\tDistance from Mother Ship : %.2lf\n\t\t\tAirway :                    %ld",
                 i,
-                data->mothership.clients[i].client_id,
+                data->mothership.clients[i].id,
                 data->mothership.clients[i].mothership_distance,
                 data->mothership.clients[i].airway);
     }

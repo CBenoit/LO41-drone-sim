@@ -12,7 +12,7 @@
 #define DRONE_SIM_TYPEDEFS
 
 typedef unsigned long int priority_t;
-typedef unsigned long int client_id_t;
+typedef unsigned long int identity_t;
 typedef unsigned long int ammo_t;
 typedef unsigned long int ticks_t;
 typedef long int airway_t;

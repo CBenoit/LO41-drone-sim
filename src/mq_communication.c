@@ -25,3 +25,21 @@ message_t make_double_message(pid_t dest, mq_msg_id_t msg_id, double value) {
     return message;
 }
 
+message_t make_ticks_message(pid_t dest, mq_msg_id_t msg_id, ticks_t value) {
+    message_t message = make_message(dest, msg_id);
+    message.ticks_value = value;
+    return message;
+}
+
+message_t make_power_message(pid_t dest, mq_msg_id_t msg_id, power_t value) {
+    message_t message = make_message(dest, msg_id);
+    message.power_value = value;
+    return message;
+}
+
+message_t make_identity_message(pid_t dest, mq_msg_id_t msg_id, identity_t value) {
+    message_t message = make_message(dest, msg_id);
+    message.identity_value = value;
+    return message;
+}
+
