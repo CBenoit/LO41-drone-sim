@@ -15,9 +15,17 @@
 #include <signal.h>
 
 #define MOTHER_SEM_NAME "/tiwindesem_mother"
+#define forever for(;;)
 
-enum {
+enum /*signals*/ {
     MOTHERSHIP_SIGNAL = SIGUSR1
+};
+
+enum /*return values*/{
+    GRACEFULLY_STOPPED,
+    EXPLODED,
+    UNEXPECTEDLY_STOPPED,
+    DIED
 };
 
 sem_t* mother_sem;

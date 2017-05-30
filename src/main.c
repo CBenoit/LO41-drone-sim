@@ -62,6 +62,7 @@ void start(sim_data* sdata) {
         if (hunters_p[i] == 0) {
             // I'm a hunter !
             free(hunters_p);
+            unload_simulation(sdata);
             hunter_main(sdata->hunters[i], msqid);
             exit(EXIT_SUCCESS);
         }
@@ -84,7 +85,7 @@ void start(sim_data* sdata) {
             int this_drone_pipes[2] = { drones_pipes[2*i], drones_pipes[2*i + 1] };
             free(drones_pipes);
             // drone_main(...) should free clients_pipes and close this_drone_pipes
-            drone_main(sdata->drones[i], clients_pipes, sdata->mothership.client_nbr, this_drone_pipes, msqid);
+            drone_main(sdata->drones[i], clients_pipes, sdata->mothership.client_nbr, this_drone_pipes, msqid, sdata);
             exit(EXIT_SUCCESS);
         }
     }
@@ -105,6 +106,8 @@ void start(sim_data* sdata) {
             free(clients_pipes);
             free(drones_p);
             free(clients_p);
+
+            unload_simulation(sdata);
 
             // Client ! Go !
             client_main(filedesc, drones_pipes, sdata->drone_nbr);
