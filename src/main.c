@@ -33,7 +33,6 @@ int main(int argc, char *argv[]) {
     print_simulation_data(&data);
     printf("\n\n------ Starting simulation ------\n\n");
     start(&data);
-    unload_simulation(&data);
     return EXIT_SUCCESS;
 }
 
@@ -62,8 +61,9 @@ void start(sim_data* sdata) {
         if (hunters_p[i] == 0) {
             // I'm a hunter !
             free(hunters_p);
+            hunter_t hunter = sdata->hunters[i];
             unload_simulation(sdata);
-            hunter_main(sdata->hunters[i], msqid);
+            hunter_main(hunter, msqid);
             exit(EXIT_SUCCESS);
         }
     }
