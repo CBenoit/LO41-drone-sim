@@ -72,14 +72,11 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
                 }
             } else {
                 switch (message.msg_id) {
-                    case DRONE_MSG:
-                        printf("received drone message.\n");
-                        break;
-                    case HUNTER_MSG:
-                        printf("received hunter message.\n");
+                    case ASK_DEPARTURE_MSG:
+                        printf("Received ask departure message.\n");
                         break;
                     default:
-                        fail_fast("unexpected message received.\n");
+                        fail_fast("Unexpected message received.\n");
                         // no need to break
                 }
             }

@@ -13,14 +13,9 @@ message_t create_empty_message(pid_t dest, mq_msg_id_t msg_id) {
     return message;
 }
 
-message_t create_initialized_message(pid_t dest, mq_msg_id_t msg_id, uint8_t content[], size_t content_size) {
-    if (content_size > MSG_CONTENT_SIZE_MAX) {
-        printf("error: cannot create a message with a content greater than the content size max.");
-        abort();
-    }
-
+message_t create_message(pid_t dest, mq_msg_id_t msg_id, int value) {
     message_t message = create_empty_message(dest, msg_id);
-    memcpy(&message.content, &content, content_size);
+    message.value = value;
     return message;
 }
 

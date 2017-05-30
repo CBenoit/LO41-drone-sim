@@ -40,7 +40,7 @@ void drone_main(drone_t me, int* clients_pipes, unsigned int number_of_clients, 
         // TODO
 
         printf("drone: sending message to mothership.\n");
-        message_t message = create_empty_message(getppid(), DRONE_MSG);
+        message_t message = create_empty_message(getppid(), ASK_DEPARTURE_MSG);
         if (msgsnd(msqid, &message, sizeof(message_t), IPC_NOWAIT) == -1) {
             perror("msgsnd");
             abort();

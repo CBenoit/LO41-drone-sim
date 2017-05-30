@@ -8,41 +8,17 @@
 //                                                                                               //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef DRONE_SIM_MQ_COMMUNICATION
-#define DRONE_SIM_MQ_COMMUNICATION
-
-#include <sys/types.h>
-
-#include "typedefs.h"
+#ifndef DRONE_SIM_PIPE_COMMUNICATION
+#define DRONE_SIM_PIPE_COMMUNICATION
 
 enum {
-    // mothership messages
-    LOAD_PACKAGE_MSG,
-    EXPLOSE_MSG,
-    REFUEL_DRONE_MSG,
-    DEPART_DRONE_MSG,
-    POWER_OFF_MSG,
-
-    // hunter messages
-    SHOOT_DRONE_MSG,
+    // client messages
+    DELIVERY_OK_MSG,
+    DELIVERY_DENIED_MSG,
 
     // drone messages
-    ASK_DEPARTURE_MSG,
-    ASK_PACKAGE_MSG,
-    ASK_REFUEL_MSG,
-    END_REFUEL_MSG,
-    NOTIFY_ARRIVAL_MSG
+    ASK_DELIVERY
 };
 
-typedef struct {
-    long type;
-    pid_t pid;
-    mq_msg_id_t msg_id;
-    int value;
-} message_t;
-
-message_t create_empty_message(pid_t dest, mq_msg_id_t msg_id);
-message_t create_message(pid_t dest, mq_msg_id_t msg_id, int value);
-
-#endif /* ifndef DRONE_SIM_MQ_COMMUNICATION */
+#endif /* ifndef DRONE_SIM_PIPE_COMMUNICATION */
 
