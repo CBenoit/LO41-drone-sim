@@ -102,6 +102,8 @@ void start(sim_data* sdata) {
             close(clients_pipes[2*i + 1]);
             int filedesc = clients_pipes[2*i];
 
+            fcntl(filedesc, F_SETFL, fcntl(filedesc, F_GETFL) | O_NONBLOCK);
+
             // Freeing unused memory
             free(clients_pipes);
             free(drones_p);

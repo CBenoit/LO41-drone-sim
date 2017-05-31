@@ -12,6 +12,8 @@
 #include <unistd.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <time.h>
+#include <string.h>
 
 #include "utility.h"
 #include "client.h"
@@ -20,6 +22,7 @@ void client_main(int read_filedesc, int* drones_pipes, unsigned int number_of_dr
     sigset_t mask;
     sigaddset(&mask, MOTHERSHIP_SIGNAL);
     sigprocmask(SIG_BLOCK, &mask, NULL);
+    srand((unsigned int)time(NULL));
 
     // I am ready
     sem_post(mother_sem);
@@ -27,18 +30,17 @@ void client_main(int read_filedesc, int* drones_pipes, unsigned int number_of_dr
     // Waiting for the Mother Ship to be ready
     wait_mothership_signal();
 
-    int val = 0;
-    for (;;) {
-        // 1 tick
-
-        ++val;
-        printf("Client:\t%s\n", val%2 ? "tic" : "tac");
-        // TODO
+    char msg[256];
+    forever {
+        if (read(read_filedesc, msg, 256) != -1) {
+            int write_filedesc = (int)strtol(strtok(msg, ";"), NULL, 10);
+            double volume = strtod(strtok(NULL, ";"), NULL);
+            dprintf(write_filedesc, "%lu", (unsigned long)(volume / 10. + 1 + rand() % 4));
+        }
 
         sem_post(mother_sem);
         wait_mothership_signal();
     }
-
 
     close_pipes(number_of_drones, drones_pipes);
     free(drones_pipes);

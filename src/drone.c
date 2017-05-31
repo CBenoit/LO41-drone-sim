@@ -103,10 +103,22 @@ void flying_state() {
 }
 
 void delivering_state() {
-    // TODO
+
+    dprintf(m_clients_pipes[m_me.package->client_id * 2 + 1], "%d;%lf\n", m_pipes[0], m_me.package->volume);
+    tick();
+
+    FILE* client = fdopen(m_clients_pipes[m_me.package->client_id * 2], "r");
+    unsigned long waiting_time;
+    printf("tick\n");
+    fscanf(client, "%lu", &waiting_time);
+    //todo: what if the client does not want the package
+    printf("tack\n");
+    while(waiting_time--) {
+        tick();
+    }
+    m_me.package = NULL;
     m_state.run = &waiting_departure_auth_state;
     m_state.going_to_client = false;
-    tick();
 }
 
 void waiting_departure_auth_state() {
