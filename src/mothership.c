@@ -19,7 +19,9 @@
 #include <fcntl.h>
 #include <time.h>
 #include <sys/time.h>
+#include <sys/wait.h>
 #include <math.h>
+#include <signal.h>
 
 #include "mothership.h"
 #include "utility.h"
@@ -63,7 +65,58 @@ static identity_t* m_available_drones;
 
 struct timeval m_beg_time;
 
+void sigchild_handler(int);
+
+void sigchild_handler(int ignored) {
+    int status;
+    pid_t pid;
+    unsigned int i;
+    while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
+        for (i = m_sdata->drone_nbr ; i-- ; ) {
+            if (m_drones_p[i] == pid) {
+                //TODO: something with status
+                --m_sdata->drone_nbr;
+                m_drones_p[i] = m_drones_p[m_sdata->drone_nbr];
+                printf("Drone %d died.\n", pid);
+                sem_post(mother_sem);
+                break;
+            }
+        }
+        if (i == -1) {
+            for (i = m_sdata->hunter_nbr ; i-- ;) {
+                if (m_hunters_p[i] == pid) {
+                    // TODO: something with the status
+                    --m_sdata->hunter_nbr;
+                    m_hunters_p[i] = m_hunters_p[m_sdata->hunter_nbr];
+                    printf("Client %d died.\n", pid);
+                    sem_post(mother_sem);
+                    break;
+                }
+            }
+
+            if (i == -1) {
+                for (i = m_sdata->mothership.client_nbr ; i-- ;) {
+                    if (m_clients_p[i] == pid) {
+                        printf("Hunter %d died.\n", pid);
+                        // TODO: something with the status
+                        --m_sdata->mothership.client_nbr;
+                        m_clients_p[i] = m_clients_p[m_sdata->mothership.client_nbr];
+                        sem_post(mother_sem);
+                        break;
+                    }
+                }
+                if (i == -1) {
+                    printf("Who died ?? its pid is %d\n", pid);
+                }
+            }
+        }
+    }
+}
+
 void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* hunters_p, int msqid) {
+
+    signal(SIGCHLD, &sigchild_handler);
+
     // initializing
     this = &sdata->mothership;
 
