@@ -37,11 +37,13 @@ static void tick(void);
 static void fail_fast(const char* message);
 static void wait_for(unsigned long);
 static void clean(void);
-static void remove_available_drone(pid_t drone_pid);
-static void add_available_drone(pid_t drone_pid);
-static void swap_pid(pid_t* array, size_t i, size_t j);
+static void remove_available_drone(identity_t drone_id);
+static void add_available_drone(identity_t drone_id);
+static void swap_identity(identity_t* array, size_t i, size_t j);
+static bool drone_is_available(identity_t drone_id);
 static bool find_drone(identity_t id, drone_t* drone_found);
 static bool find_appropriate_package_for_drone(identity_t drone_id, identity_t* package_id_found);
+static identity_t find_drone_id_by_pid(pid_t drone_pid);
 
 static void interruption_handler(int sig);
 
@@ -57,7 +59,7 @@ static int m_msqid;
 static unsigned long int m_remaining_power_loading_slots = 0;
 
 static size_t m_available_drones_nbr;
-static pid_t* m_available_drones;
+static identity_t* m_available_drones;
 
 struct timeval m_beg_time;
 
@@ -74,7 +76,7 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
     m_remaining_power_loading_slots = m_sdata->mothership.power_loading_slots;
 
     m_available_drones_nbr = m_sdata->drone_nbr;
-    m_available_drones = (pid_t*) malloc(sizeof(pid_t) * m_available_drones_nbr);
+    m_available_drones = (identity_t*) malloc(sizeof(pid_t) * m_available_drones_nbr);
 
     wait_for(m_sdata->drone_nbr + m_sdata->hunter_nbr + this->client_nbr);
     signal(SIGINT, &interruption_handler);
@@ -93,7 +95,11 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
                 case ASK_DEPARTURE_MSG:
                     printf("Received ask departure message.\n");
                     break;
+                case NOTIFY_ARRIVAL_MSG:
+                    printf("Received notify arrival message.\n");
+                    break;
                 case ASK_PACKAGE_MSG:
+                    printf("Received ask package message.\n");
                     if (nbr_of_packages_that_can_be_loaded > 0) {
                         identity_t package_id;
                         if (find_appropriate_package_for_drone(message.identity_value, &package_id)) {
@@ -111,6 +117,7 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
                     }
                     break;
                 case ASK_POWER_MSG:
+                    printf("Received ask power message.\n");
                     if (m_remaining_power_loading_slots > 0) {
                         ticks_t required_ticks = (ticks_t) ceil(message.double_value / this->power_throughput);
                         message_t answer = make_ticks_message(message.pid, POWER_DRONE_MSG, required_ticks);
@@ -121,9 +128,8 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
                     }
                     break;
                 case END_POWER_MSG:
+                    printf("Received end power message.\n");
                     ++m_remaining_power_loading_slots;
-                    break;
-                case NOTIFY_ARRIVAL_MSG:
                     break;
                 default:
                     fail_fast("Unexpected message received.\n");
@@ -220,13 +226,13 @@ void clean() {
     unload_simulation(m_sdata);
 }
 
-void remove_available_drone(pid_t drone_pid) {
+void remove_available_drone(identity_t drone_id) {
     bool found = false;
     size_t i;
     for (i = 0; i < m_available_drones_nbr; i++) {
-        if (m_available_drones[i] == drone_pid) {
+        if (m_available_drones[i] == drone_id) {
             found = true;
-            swap_pid(m_available_drones, i, m_available_drones_nbr - 1);
+            swap_identity(m_available_drones, i, m_available_drones_nbr - 1);
         }
     }
 
@@ -234,15 +240,25 @@ void remove_available_drone(pid_t drone_pid) {
         --m_available_drones_nbr;
 }
 
-void add_available_drone(pid_t drone_pid) {
-    m_available_drones[m_available_drones_nbr] = drone_pid;
+void add_available_drone(identity_t drone_id) {
+    m_available_drones[m_available_drones_nbr] = drone_id;
     ++m_available_drones_nbr;
 }
 
-void swap_pid(pid_t* array, size_t i, size_t j) {
-    pid_t tmp = array[i];
+void swap_identity(identity_t* array, size_t i, size_t j) {
+    identity_t tmp = array[i];
     array[i] = array[j];
     array[j] = tmp;
+}
+
+bool drone_is_available(identity_t drone_id) {
+    size_t i;
+    for (i = m_available_drones_nbr; i--;) {
+        if (m_available_drones[i] == drone_id) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void interruption_handler(int sig) {
@@ -252,7 +268,7 @@ void interruption_handler(int sig) {
 bool find_drone(identity_t id, drone_t* drone_found) {
     bool found = false;
     size_t i;
-    for (i = m_sdata->drone_nbr; i-- ;) {
+    for (i = m_sdata->drone_nbr; i--;) {
         if (m_sdata->drones[i].id == id) {
             found = true;
             *drone_found = m_sdata->drones[i];
@@ -266,10 +282,28 @@ bool find_appropriate_package_for_drone(identity_t drone_id, identity_t* package
     drone_t drone;
     if (find_drone(drone_id, &drone)) {
         bool found = false;
-        // TODO
+        size_t i;
+        for (i = this->package_nbr; i--;) {
+            if (this->packages[i].weight <= drone.max_package_weight
+                    && this->packages[i].volume <= drone.max_package_volume) {
+                found = true;
+                *package_id_found = i;
+                break;
+            }
+        }
         return found;
     } else {
         return false;
     }
+}
+
+// returns 0 if not found
+identity_t find_drone_id_by_pid(pid_t drone_pid) {
+    for (identity_t i = m_sdata->drone_nbr; i--;) {
+        if (m_drones_p[i] == drone_pid) {
+            return i;
+        }
+    }
+    return 0;
 }
 
