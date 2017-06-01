@@ -80,16 +80,16 @@ void drone_main(drone_t me, int* clients_pipes, unsigned int number_of_clients, 
 void flying_state() {
     if (m_state.going_to_client) {
         while (m_me.client_distance > 0) {
-            --m_me.client_distance;
-            ++m_me.mothership_distance;
+            m_me.client_distance -= m_me.speed;
+            m_me.mothership_distance += m_me.speed;
             --m_me.fuel;
             tick();
         }
         m_state.run = &delivering_state;
     } else {
         while (m_me.mothership_distance > 0) {
-            --m_me.mothership_distance;
-            ++m_me.client_distance;
+            m_me.mothership_distance -= m_me.speed;
+            m_me.client_distance += m_me.speed;
             --m_me.fuel;
             tick();
         }

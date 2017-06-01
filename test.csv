@@ -1,18 +1,18 @@
-#drone;capacité_fuel;capacité_poids;capacité_volume
+#drone;capacité_fuel;capacité_poids;capacité_volume;vitesse
 #colis;poids;volume;client_cible(entier >= 0);priorité(entier >= 0)
 #client;X;Y;ID(entier >= 0)
-#chasseur;qtt_munition;temps_rechargement
+#chasseur;qtt_munition;temps_rechargement;précision (%)
 #vaisseau;X;Y;débit_colis;débit_pompes;nbr_pompes
 
-drone;1000;350;100
+drone;1000;350;100;750
 vaisseau;125;87.5;3;10.5;5
-drone;250;1000;772.5
+drone;250;1000;772.5;1000
 colis;300;300;7;12
 client;10;20;7
 client;-30;500;2
 colis;200;100;7;15
 colis;3;0.5;2;200
-chasseur;2;127
+chasseur;2;127;85
 colis;10;10;4;0
 client;10000;100;4
 client;130;87.5;5

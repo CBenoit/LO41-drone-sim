@@ -86,6 +86,7 @@ void parse(parser_data* data, FILE* file) {
         char* val = strtok(line,",;");
         if (strcmp(val, "drone") == 0) {
             data->drones[data->drone_nbr].power_capacity = strtod(strtok(NULL, ",;"), NULL);
+            data->drones[data->drone_nbr].speed = strtod(strtok(NULL, ",;"), NULL);
             data->drones[data->drone_nbr].trunk.weight_capacity = strtod(strtok(NULL,",;"), NULL);
             data->drones[data->drone_nbr].trunk.volume_capacity = strtod(strtok(NULL,",;"), NULL);
             ++data->drone_nbr;
@@ -102,6 +103,7 @@ void parse(parser_data* data, FILE* file) {
             ++data->client_nbr;
         } else if (strcmp(val, "chasseur") == 0) {
             data->hunters[data->hunter_nbr].ammo = strtoul(strtok(NULL,",;"), NULL, 10);
+            data->hunters[data->hunter_nbr].accuracy = strtof(strtok(NULL,",;"), NULL);
             data->hunters[data->hunter_nbr].reload_time = strtoul(strtok(NULL,",;"), NULL, 10);
             ++data->hunter_nbr;
         } else if (strcmp(val, "vaisseau") == 0) {
@@ -156,6 +158,7 @@ void load_simulation_data(parser_data* input, sim_data* output) {
     output->drones = malloc(output->drone_nbr * sizeof(drone_t));
     for (uint_fast32_t i = output->drone_nbr ; i-- ;) {
         output->drones[i].id = i;
+        output->drones[i].speed = input->drones[i].speed;
         output->drones[i].max_fuel = input->drones[i].power_capacity;
         output->drones[i].fuel = output->drones[i].max_fuel;
         output->drones[i].max_package_weight = input->drones[i].trunk.weight_capacity;
@@ -170,6 +173,7 @@ void load_simulation_data(parser_data* input, sim_data* output) {
     output->hunters = malloc(output->hunter_nbr * sizeof(hunter_t));
     for (uint_fast32_t i = output->hunter_nbr ; i-- ;) {
         output->hunters[i].ammo = input->hunters[i].ammo;
+        output->hunters[i].accuracy = input->hunters[i].accuracy;
         output->hunters[i].shoot_interval = input->hunters[i].reload_time;
     }
 }

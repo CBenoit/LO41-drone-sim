@@ -15,6 +15,7 @@
 
 typedef struct {
     ammo_t ammo;
+    float accuracy;
     ticks_t shoot_interval;
 } hunter_t;
 
@@ -40,6 +41,7 @@ typedef struct {
     package_t* package;
     distance_t client_distance;
     distance_t mothership_distance;
+    distance_t speed;
     // client_distance + mothership_distance should be a constant sum at runtime.
 } drone_t;
 
