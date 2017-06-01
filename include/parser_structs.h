@@ -27,6 +27,7 @@ typedef struct {
 
 typedef struct {
     double power_capacity;
+    double speed;
     parser_trunk_type trunk;
 } parser_drone_type;
 
@@ -37,6 +38,7 @@ typedef struct {
 
 typedef struct {
     unsigned long int ammo;
+    float accuracy;
     unsigned long int reload_time;
 } parser_hunter_type;
 
