@@ -65,6 +65,10 @@ static identity_t* m_available_drones;
 
 struct timeval m_beg_time;
 
+static bool m_is_drone_turn = false;
+static bool m_is_hunter_turn = false;
+static bool m_is_client_turn = false;
+
 void sigchild_handler(int);
 
 void sigchild_handler(int ignored) {
@@ -78,7 +82,9 @@ void sigchild_handler(int ignored) {
                 --m_sdata->drone_nbr;
                 m_drones_p[i] = m_drones_p[m_sdata->drone_nbr];
                 printf("Drone %d died.\n", pid);
-                sem_post(mother_sem);
+                if (m_is_drone_turn) {
+                    sem_post(mother_sem);
+                }
                 break;
             }
         }
@@ -88,8 +94,10 @@ void sigchild_handler(int ignored) {
                     // TODO: something with the status
                     --m_sdata->hunter_nbr;
                     m_hunters_p[i] = m_hunters_p[m_sdata->hunter_nbr];
-                    printf("Client %d died.\n", pid);
-                    sem_post(mother_sem);
+                    printf("Hunter %d died.\n", pid);
+                    if (m_is_hunter_turn) {
+                        sem_post(mother_sem);
+                    }
                     break;
                 }
             }
@@ -97,11 +105,13 @@ void sigchild_handler(int ignored) {
             if (i == -1) {
                 for (i = m_sdata->mothership.client_nbr ; i-- ;) {
                     if (m_clients_p[i] == pid) {
-                        printf("Hunter %d died.\n", pid);
+                        printf("Client %d died.\n", pid);
                         // TODO: something with the status
                         --m_sdata->mothership.client_nbr;
                         m_clients_p[i] = m_clients_p[m_sdata->mothership.client_nbr];
-                        sem_post(mother_sem);
+                        if (m_is_client_turn) {
+                            sem_post(mother_sem);
+                        }
                         break;
                     }
                 }
@@ -242,12 +252,18 @@ void send_sig_to_all(int sig) {
 }
 
 void tick() {
+    m_is_drone_turn = true;
     send_sig_to_list(MOTHERSHIP_SIGNAL, m_drones_p, m_sdata->drone_nbr);
     wait_for(m_sdata->drone_nbr);
+    m_is_drone_turn = false;
+    m_is_client_turn = true;
     send_sig_to_list(MOTHERSHIP_SIGNAL, m_clients_p, m_sdata->mothership.client_nbr);
     wait_for(m_sdata->mothership.client_nbr);
+    m_is_client_turn = false;
+    m_is_hunter_turn = true;
     send_sig_to_list(MOTHERSHIP_SIGNAL, m_hunters_p, m_sdata->hunter_nbr);
     wait_for(m_sdata->hunter_nbr);
+    m_is_hunter_turn = false;
 }
 
 void fail_fast(const char* message) {
