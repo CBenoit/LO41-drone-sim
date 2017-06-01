@@ -8,38 +8,30 @@
 //                                                                                               //
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef DRONE_SIM_UTILITY
-#define DRONE_SIM_UTILITY
+#ifndef DRONE_SIM_SHM_COMMUNICATION
+#define DRONE_SIM_SHM_COMMUNICATION
 
-#include <semaphore.h>
-#include <signal.h>
+#include <unistd.h>
+#include <stdbool.h>
 
-#define MOTHER_SEM_NAME "/tiwindesem_mother"
-#define SHARED_MEM_NAME "/tiwindeshm_com"
+void initialize_shared_memory(size_t number_of_drones);
 
-#define forever for(;;)
+void clean_shared_memory(void);
 
-enum /*signals*/ {
-    MOTHERSHIP_SIGNAL = SIGUSR1
-};
+void map_shared_memory(void);
 
-enum /*return values*/{
-    GRACEFULLY_STOPPED,
-    EXPLODED,
-    UNEXPECTEDLY_STOPPED,
-    DIED
-};
+void unmap_shared_memory(void);
 
-sem_t* mother_sem;
+// everything is thread safe thanks to a semaphore
+void remove_flying_drone(pid_t drone_pid);
 
+void add_flying_drone(pid_t drone_pid);
 
-int* open_pipes(unsigned int);
+bool drone_is_flying(pid_t drone_pid);
 
-void close_pipes(unsigned int, int*);
+pid_t* get_flying_drones(void);
 
-void empty_handler(int sig);
+size_t get_number_of_flying_drones(void);
 
-void wait_mothership_signal(void);
-
-#endif /* ifndef DRONE_SIM_UTILITY */
+#endif
 

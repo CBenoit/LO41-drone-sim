@@ -22,7 +22,7 @@
 #include "client.h"
 #include "hunter.h"
 #include "utility.h"
-
+#include "shm_communication.h"
 
 void start(sim_data*);
 
@@ -37,12 +37,16 @@ int main(int argc, char *argv[]) {
 }
 
 void start(sim_data* sdata) {
-    sem_unlink(MOTHER_SEM_NAME);
+    initialize_shared_memory(sdata->drone_nbr);
+
     mother_sem = sem_open(MOTHER_SEM_NAME, O_CREAT | O_EXCL, 0644, 0);
     if (mother_sem == SEM_FAILED) {
-        perror("Failed to create semaphore. Aborting...");
-        abort();
+        perror("Failed to create semaphore.");
+        exit(EXIT_FAILURE);
     }
+
+    // free once everyone closed the semaphore
+    sem_unlink(MOTHER_SEM_NAME);
 
     // creating message queue
     int msqid = msgget(IPC_PRIVATE, IPC_CREAT | IPC_EXCL | 0600);
@@ -50,8 +54,9 @@ void start(sim_data* sdata) {
         sem_unlink(MOTHER_SEM_NAME);
         sem_close(mother_sem);
         sem_destroy(mother_sem);
+        clean_shared_memory();
         perror("msgget");
-        abort();
+        exit(EXIT_FAILURE);
     }
 
     // Creating hunters

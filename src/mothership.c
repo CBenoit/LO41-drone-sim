@@ -26,6 +26,7 @@
 #include "mothership.h"
 #include "utility.h"
 #include "mq_communication.h"
+#include "shm_communication.h"
 #include "parser.h"
 #include "typedefs.h"
 
@@ -40,9 +41,6 @@ static void tick(void);
 static void fail_fast(const char* message);
 static void wait_for(unsigned long);
 static void clean(void);
-static void remove_flying_drone(pid_t drone_id);
-static void add_flying_drone(pid_t drone_id);
-static bool drone_is_flying(pid_t drone_id);
 static bool find_drone(identity_t id, drone_t* drone_found);
 static bool find_appropriate_package_for_drone(identity_t drone_id, identity_t* package_id_found);
 static identity_t find_drone_id_by_pid(pid_t drone_pid);
@@ -61,9 +59,6 @@ static int m_msqid;
 
 static unsigned long int m_remaining_power_loading_slots = 0;
 
-static size_t m_flying_drones_nbr;
-static pid_t* m_flying_drones; // TODO: move that to shared memory.
-
 struct timeval m_beg_time;
 
 static bool m_is_drone_turn = false;
@@ -72,6 +67,7 @@ static bool m_is_client_turn = false;
 
 void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* hunters_p, int msqid) {
     signal(SIGCHLD, &sigchild_handler);
+    map_shared_memory();
 
     // initializing
     this = &sdata->mothership;
@@ -84,15 +80,13 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
 
     m_remaining_power_loading_slots = m_sdata->mothership.power_loading_slots;
 
-    m_flying_drones_nbr = 0;
-    m_flying_drones = (pid_t*) malloc(sizeof(pid_t) * m_flying_drones_nbr);
-
     wait_for(m_sdata->drone_nbr + m_sdata->hunter_nbr + this->client_nbr);
     signal(SIGINT, &interruption_handler);
 
     forever {
         init_timer();
 
+        clean_shared_memory();
         // check messages from drones
         printf("Mothership check messages.\n");
         message_t message;
@@ -251,41 +245,17 @@ void clean() {
     free(m_drones_p);
     free(m_clients_p);
     free(m_hunters_p);
-    free(m_flying_drones);
 
     sem_unlink(MOTHER_SEM_NAME);
     sem_close(mother_sem);
     sem_destroy(mother_sem);
 
+    unmap_shared_memory();
+    clean_shared_memory();
+
     msgctl(m_msqid, IPC_RMID, NULL);
 
     unload_simulation(m_sdata);
-}
-
-void remove_flying_drone(pid_t drone_pid) {
-    size_t i;
-    for (i = m_flying_drones_nbr; i--;) {
-        if (m_flying_drones[i] == drone_pid) {
-            --m_flying_drones_nbr;
-            m_flying_drones[i] = m_flying_drones[m_flying_drones_nbr];
-            return;
-        }
-    }
-}
-
-void add_flying_drone(pid_t drone_pid) {
-    m_flying_drones[m_flying_drones_nbr] = drone_pid;
-    ++m_flying_drones_nbr;
-}
-
-bool drone_is_flying(pid_t drone_pid) {
-    size_t i;
-    for (i = m_flying_drones_nbr; i--;) {
-        if (m_flying_drones[i] == drone_pid) {
-            return true;
-        }
-    }
-    return false;
 }
 
 bool find_drone(identity_t id, drone_t* drone_found) {
