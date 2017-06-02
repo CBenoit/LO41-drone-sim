@@ -20,7 +20,7 @@ int* open_pipes(unsigned int number_of_pipes) {
     for (unsigned int i = number_of_pipes ; i-- ;) {
         if (pipe(pipes + 2*i)) {
             printf ("Failed to create pipes. Aborting.\n");
-            abort();
+            exit(EXIT_FAILURE);
         }
     }
     return pipes;

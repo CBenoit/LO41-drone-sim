@@ -203,7 +203,7 @@ identity_t find(unsigned long value, unsigned long* array, unsigned long size) {
         }
     }
     printf("Client %lu doesn't exist! Aborting...\n", value);
-    abort();
+    exit(EXIT_FAILURE);
 }
 
 void load_simulation(sim_data* data, const char* file_path) {

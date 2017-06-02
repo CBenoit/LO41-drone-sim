@@ -24,14 +24,13 @@ enum /*signals*/ {
 };
 
 enum /*return values*/{
-    GRACEFULLY_STOPPED,
-    EXPLODED,
-    UNEXPECTEDLY_STOPPED,
-    DIED
+    GRACEFULLY_STOPPED = 10,
+    EXPLODED = 11,
+    UNEXPECTEDLY_STOPPED = 12,
+    DIED = 13
 };
 
 sem_t* mother_sem;
-
 
 int* open_pipes(unsigned int);
 
