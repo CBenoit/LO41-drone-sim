@@ -57,16 +57,18 @@ static pid_t* m_clients_p = NULL;
 static pid_t* m_hunters_p = NULL;
 static int m_msqid;
 
-static unsigned long int m_remaining_power_loading_slots = 0;
+static size_t m_remaining_power_loading_slots;
 
 struct timeval m_beg_time;
 
 static bool m_is_drone_turn = false;
 static bool m_is_hunter_turn = false;
 static bool m_is_client_turn = false;
+static size_t m_remaining_drone_nbr;
+static size_t m_remaining_client_nbr;
+static size_t m_remaining_hunter_nbr;
 
-static size_t m_initial_number_of_drones;
-static pid_t* m_drones_pid_by_id;
+static identity_t* m_package_id_by_drone_id;
 static bool* m_drones_going_to_client;
 static bool* m_remaining_packages;
 
@@ -85,11 +87,13 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
     m_msqid = msqid;
 
     m_remaining_power_loading_slots = m_sdata->mothership.power_loading_slots;
+    m_remaining_drone_nbr = m_sdata->drone_nbr;
+    m_remaining_client_nbr = this->client_nbr;
+    m_remaining_hunter_nbr = m_sdata->hunter_nbr;
 
-    m_initial_number_of_drones = sdata->drone_nbr;
-    m_drones_pid_by_id = (pid_t*) malloc(sizeof(pid_t) * sdata->drone_nbr);
+    m_package_id_by_drone_id = (identity_t*) malloc(sizeof(identity_t) * sdata->drone_nbr);
     for (size_t i = sdata->drone_nbr; i--;) {
-        m_drones_pid_by_id[i] = drones_p[i];
+        m_package_id_by_drone_id[i] = BAD_ID;
     }
 
     m_drones_going_to_client = (bool*) malloc(sizeof(bool) * sdata->drone_nbr);
@@ -103,7 +107,7 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
     }
 
     // wait for drones, hunters and clients.
-    wait_for(m_sdata->drone_nbr + m_sdata->hunter_nbr + this->client_nbr);
+    wait_for(m_remaining_drone_nbr + m_remaining_hunter_nbr + m_remaining_client_nbr);
 
     forever {
         init_timer();
@@ -148,10 +152,10 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
                     }
                     case ASK_PACKAGE_MSG: {
                         if (nbr_of_packages_that_can_be_loaded > 0) {
-                            printf("Drone %lu ask a package.", drone_id);
+                            printf("Drone %lu asked a package.", drone_id);
                             identity_t package_id;
                             if (find_appropriate_package_for_drone(message.identity_value, &package_id)) {
-                                printf(" Found an appropriate package: %lu.\n", package_id);
+                                printf(" Appropriate package found (id %lu).\n", package_id);
                                 message_t answer = make_identity_message(message.pid, LOAD_PACKAGE_MSG, package_id);
                                 if (msgsnd(msqid, &answer, sizeof(message_t), IPC_NOWAIT) == -1) {
                                     fail_fast("ASK_PACKAGE_MSG: msgsnd failed!");
@@ -180,7 +184,7 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
                         break;
                     }
                     case END_POWER_MSG: {
-                        printf("Drone %lu leaves a power loading slot.\n", drone_id);
+                        printf("Drone %lu left a power loading slot.\n", drone_id);
                         ++m_remaining_power_loading_slots;
                         break;
                     }
@@ -245,15 +249,15 @@ void send_sig_to_all(int sig) {
 void tick() {
     m_is_drone_turn = true;
     send_sig_to_list(MOTHERSHIP_SIGNAL, m_drones_p, m_sdata->drone_nbr);
-    wait_for(m_sdata->drone_nbr);
+    wait_for(m_remaining_drone_nbr);
     m_is_drone_turn = false;
     m_is_client_turn = true;
     send_sig_to_list(MOTHERSHIP_SIGNAL, m_clients_p, m_sdata->mothership.client_nbr);
-    wait_for(m_sdata->mothership.client_nbr);
+    wait_for(m_remaining_client_nbr);
     m_is_client_turn = false;
     m_is_hunter_turn = true;
     send_sig_to_list(MOTHERSHIP_SIGNAL, m_hunters_p, m_sdata->hunter_nbr);
-    wait_for(m_sdata->hunter_nbr);
+    wait_for(m_remaining_hunter_nbr);
     m_is_hunter_turn = false;
 }
 
@@ -327,8 +331,8 @@ bool find_appropriate_package_for_drone(identity_t drone_id, identity_t* package
 
 // returns 0 if not found
 identity_t find_drone_id_by_pid(pid_t drone_pid) {
-    for (identity_t i = m_initial_number_of_drones; i--;) {
-        if (m_drones_pid_by_id[i] == drone_pid) {
+    for (identity_t i = m_sdata->drone_nbr; i--;) {
+        if (m_drones_p[i] == drone_pid) {
             return i;
         }
     }
@@ -348,8 +352,7 @@ void sigchild_handler(int ignored) {
             if (m_drones_p[i] == pid) {
                 //TODO: something with status
                 printf("/!\\ Drone %lu died (pid %d).\n", find_drone_id_by_pid(pid), pid);
-                --m_sdata->drone_nbr;
-                m_drones_p[i] = m_drones_p[m_sdata->drone_nbr];
+                --m_remaining_drone_nbr;
                 if (m_is_drone_turn) {
                     sem_post(mother_sem);
                 }
@@ -359,10 +362,9 @@ void sigchild_handler(int ignored) {
         if (i == -1) {
             for (i = m_sdata->hunter_nbr ; i-- ;) {
                 if (m_hunters_p[i] == pid) {
-                    // TODO: something with the status
-                    --m_sdata->hunter_nbr;
-                    m_hunters_p[i] = m_hunters_p[m_sdata->hunter_nbr];
                     printf("/!\\ Hunter died (pid %d).\n", pid);
+                    // TODO: something with the status
+                    --m_remaining_hunter_nbr;
                     if (m_is_hunter_turn) {
                         sem_post(mother_sem);
                     }
@@ -375,8 +377,7 @@ void sigchild_handler(int ignored) {
                     if (m_clients_p[i] == pid) {
                         printf("/!\\ Client died (pid %d).\n", pid);
                         // TODO: something with the status
-                        --m_sdata->mothership.client_nbr;
-                        m_clients_p[i] = m_clients_p[m_sdata->mothership.client_nbr];
+                        --m_remaining_client_nbr;
                         if (m_is_client_turn) {
                             sem_post(mother_sem);
                         }
