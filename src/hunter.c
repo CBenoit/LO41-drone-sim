@@ -16,7 +16,7 @@
 #include "utility.h"
 #include "hunter.h"
 
-void hunter_main(hunter_t me, int msqid) {
+void hunter_main(hunter_t me) {
     sigset_t mask;
     sigaddset(&mask, MOTHERSHIP_SIGNAL);
     sigprocmask(SIG_BLOCK, &mask, NULL);
@@ -27,12 +27,7 @@ void hunter_main(hunter_t me, int msqid) {
     // Waiting for the Mother Ship to be ready
     wait_mothership_signal();
 
-    int val = 0;
-    for (;;) {
-        // 1 tick
-
-        ++val;
-        printf("Hunter:\t%s\n", val%2 ? "tic" : "tac");
+    forever {
         // TODO
 
         sem_post(mother_sem);

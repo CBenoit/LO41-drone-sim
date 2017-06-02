@@ -65,11 +65,17 @@ static bool m_is_drone_turn = false;
 static bool m_is_hunter_turn = false;
 static bool m_is_client_turn = false;
 
+static size_t m_initial_number_of_drones;
+static pid_t* m_drones_pid_by_id;
+static bool* m_drones_going_to_client;
+static bool* m_remaining_packages;
+
 void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* hunters_p, int msqid) {
+    // initializing
+    signal(SIGINT, &interruption_handler);
     signal(SIGCHLD, &sigchild_handler);
     map_shared_memory();
 
-    // initializing
     this = &sdata->mothership;
 
     m_sdata = sdata;
@@ -80,15 +86,31 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
 
     m_remaining_power_loading_slots = m_sdata->mothership.power_loading_slots;
 
+    m_initial_number_of_drones = sdata->drone_nbr;
+    m_drones_pid_by_id = (pid_t*) malloc(sizeof(pid_t) * sdata->drone_nbr);
+    for (size_t i = sdata->drone_nbr; i--;) {
+        m_drones_pid_by_id[i] = drones_p[i];
+    }
+
+    m_drones_going_to_client = (bool*) malloc(sizeof(bool) * sdata->drone_nbr);
+    for (size_t i = sdata->drone_nbr; i--;) {
+        m_drones_going_to_client[i] = false;
+    }
+
+    m_remaining_packages = (bool*) malloc(sizeof(bool) * this->package_nbr);
+    for (size_t i = this->package_nbr; i--;) {
+        m_remaining_packages[i] = true;
+    }
+
+    // wait for drones, hunters and clients.
     wait_for(m_sdata->drone_nbr + m_sdata->hunter_nbr + this->client_nbr);
-    signal(SIGINT, &interruption_handler);
 
     forever {
         init_timer();
 
         clean_shared_memory();
         // check messages from drones
-        printf("Mothership check messages.\n");
+        printf("=======> Mothership check messages.\n");
         message_t message;
         unsigned long int nbr_of_packages_that_can_be_loaded = this->package_throughput;
         while (msgrcv(m_msqid, &message, sizeof(message_t), getpid(), IPC_NOWAIT) != -1) {
@@ -97,36 +119,46 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
                 printf("Found no drone corresponding to the pid %d.\n", message.pid);
             } else {
                 switch (message.msg_id) {
-                    case SHOOT_DRONE_MSG:
-                        break;
                     case ASK_DEPARTURE_MSG: {
-                        printf("Received ask departure message. Send depart message.\n");
                         message_t answer = make_message(message.pid, DEPART_DRONE_MSG);
                         if (msgsnd(msqid, &answer, sizeof(message_t), IPC_NOWAIT) == -1) {
                             fail_fast("ASK_DEPARTURE_MSG: msgsnd failed!");
                         }
-                        add_flying_drone(message.pid);
+                        if (m_drones_going_to_client[drone_id]) {
+                            m_drones_going_to_client[drone_id] = false;
+                            printf("Authorized drone %lu to leave the client.\n", drone_id);
+                        } else {
+                            m_drones_going_to_client[drone_id] = true;
+                            printf("Authorized drone %lu to leave the mothership.\n", drone_id);
+                            add_flying_drone(message.pid);
+                        }
                         break;
                     }
                     case NOTIFY_ARRIVAL_MSG: {
                         printf("Received notify arrival message.\n");
                         if (drone_is_flying(message.pid)) {
-                            printf("Drone arrived at the client... but yeah. If this is the second message for this drone it actuallay came back. So: TODOFIXME. It's in the NOTIFY_ARRIVAL_MSG mothership handler. Come anytime.");
-                            //remove_flying_drone(message.pid);
+                            if (m_drones_going_to_client[drone_id]) {
+                                printf("Drone %lu arrived at the client.\n", drone_id);
+                            } else {
+                                printf("Drone %lu came back at the mothership.\n", drone_id);
+                                remove_flying_drone(message.pid);
+                            }
                         }
                         break;
                     }
                     case ASK_PACKAGE_MSG: {
-                        printf("Received ask package message.\n");
                         if (nbr_of_packages_that_can_be_loaded > 0) {
+                            printf("Drone %lu ask a package.", drone_id);
                             identity_t package_id;
                             if (find_appropriate_package_for_drone(message.identity_value, &package_id)) {
+                                printf(" Found an appropriate package: %lu.\n", package_id);
                                 message_t answer = make_identity_message(message.pid, LOAD_PACKAGE_MSG, package_id);
                                 if (msgsnd(msqid, &answer, sizeof(message_t), IPC_NOWAIT) == -1) {
                                     fail_fast("ASK_PACKAGE_MSG: msgsnd failed!");
                                 }
                                 --nbr_of_packages_that_can_be_loaded;
                             } else {
+                                printf(" No appropriate package for it, powering it off.\n");
                                 message_t answer = make_message(message.pid, POWER_OFF_MSG);
                                 if (msgsnd(msqid, &answer, sizeof(message_t), IPC_NOWAIT) == -1) {
                                     fail_fast("ASK_PACKAGE_MSG: msgsnd failed!");
@@ -136,8 +168,8 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
                         break;
                     }
                     case ASK_POWER_MSG: {
-                        printf("Received ask power message.\n");
                         if (m_remaining_power_loading_slots > 0) {
+                            printf("Give a power loading slot to drone %lu.\n", drone_id);
                             ticks_t required_ticks = (ticks_t) ceil(message.double_value / this->power_throughput);
                             message_t answer = make_ticks_message(message.pid, POWER_DRONE_MSG, required_ticks);
                             if (msgsnd(msqid, &answer, sizeof(message_t), IPC_NOWAIT) == -1) {
@@ -148,7 +180,7 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
                         break;
                     }
                     case END_POWER_MSG: {
-                        printf("Received end power message.\n");
+                        printf("Drone %lu leaves a power loading slot.\n", drone_id);
                         ++m_remaining_power_loading_slots;
                         break;
                     }
@@ -160,7 +192,7 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
         }
 
         if (errno == ENOMSG) {
-            printf("No more message.\n");
+            printf("<======= No more message.\n");
         } else {
             perror("msgrcv");
             fail_fast("Aborting...\n");
@@ -277,10 +309,13 @@ bool find_appropriate_package_for_drone(identity_t drone_id, identity_t* package
         bool found = false;
         size_t i;
         for (i = this->package_nbr; i--;) {
-            if (this->packages[i].weight <= drone.max_package_weight
+            // FIXME: take into account client distance and drone speed and power level.
+            if (m_remaining_packages[i]
+                    && this->packages[i].weight <= drone.max_package_weight
                     && this->packages[i].volume <= drone.max_package_volume) {
                 found = true;
                 *package_id_found = i;
+                m_remaining_packages[i] = false;
                 break;
             }
         }
@@ -292,8 +327,8 @@ bool find_appropriate_package_for_drone(identity_t drone_id, identity_t* package
 
 // returns 0 if not found
 identity_t find_drone_id_by_pid(pid_t drone_pid) {
-    for (identity_t i = m_sdata->drone_nbr; i--;) {
-        if (m_drones_p[i] == drone_pid) {
+    for (identity_t i = m_initial_number_of_drones; i--;) {
+        if (m_drones_pid_by_id[i] == drone_pid) {
             return i;
         }
     }
@@ -312,9 +347,9 @@ void sigchild_handler(int ignored) {
         for (i = m_sdata->drone_nbr ; i-- ; ) {
             if (m_drones_p[i] == pid) {
                 //TODO: something with status
+                printf("/!\\ Drone %lu died (pid %d).\n", find_drone_id_by_pid(pid), pid);
                 --m_sdata->drone_nbr;
                 m_drones_p[i] = m_drones_p[m_sdata->drone_nbr];
-                printf("Drone %d died.\n", pid);
                 if (m_is_drone_turn) {
                     sem_post(mother_sem);
                 }
@@ -327,7 +362,7 @@ void sigchild_handler(int ignored) {
                     // TODO: something with the status
                     --m_sdata->hunter_nbr;
                     m_hunters_p[i] = m_hunters_p[m_sdata->hunter_nbr];
-                    printf("Hunter %d died.\n", pid);
+                    printf("/!\\ Hunter died (pid %d).\n", pid);
                     if (m_is_hunter_turn) {
                         sem_post(mother_sem);
                     }
@@ -338,7 +373,7 @@ void sigchild_handler(int ignored) {
             if (i == -1) {
                 for (i = m_sdata->mothership.client_nbr ; i-- ;) {
                     if (m_clients_p[i] == pid) {
-                        printf("Client %d died.\n", pid);
+                        printf("/!\\ Client died (pid %d).\n", pid);
                         // TODO: something with the status
                         --m_sdata->mothership.client_nbr;
                         m_clients_p[i] = m_clients_p[m_sdata->mothership.client_nbr];
@@ -348,6 +383,7 @@ void sigchild_handler(int ignored) {
                         break;
                     }
                 }
+
                 if (i == -1) {
                     printf("Who died ?? its pid is %d\n", pid);
                 }

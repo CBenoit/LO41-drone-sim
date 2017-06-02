@@ -68,7 +68,7 @@ void start(sim_data* sdata) {
             free(hunters_p);
             hunter_t hunter = sdata->hunters[i];
             unload_simulation(sdata);
-            hunter_main(hunter, msqid);
+            hunter_main(hunter);
             exit(EXIT_SUCCESS);
         }
     }

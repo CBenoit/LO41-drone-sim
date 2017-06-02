@@ -23,9 +23,6 @@ typedef enum {
     DEPART_DRONE_MSG,
     POWER_OFF_MSG,
 
-    // hunter messages
-    SHOOT_DRONE_MSG,
-
     // drone messages
     ASK_DEPARTURE_MSG,
     ASK_PACKAGE_MSG,

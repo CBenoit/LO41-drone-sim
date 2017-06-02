@@ -13,7 +13,7 @@
 
 #include "structs.h"
 
-void hunter_main(hunter_t, int msqid);
+void hunter_main(hunter_t);
 
 #endif /* ifndef DRONE_SIM_HUNTER */
 
