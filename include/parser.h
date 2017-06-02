@@ -14,6 +14,8 @@
 
 #include "parser_structs.h"
 
+#define AIRWAY_SIZE ((double) 0.2) // in radians
+
 void load(parser_data* data, const char* file_path);
 
 void unload(parser_data* data);

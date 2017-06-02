@@ -17,8 +17,6 @@
 #include "parser.h"
 #include "typedefs.h"
 
-#define AIRWAY_SIZE ((double) 0.2) // in radians
-
 static void count(parser_data* data, FILE* file);
 static void parse(parser_data* data, FILE* file);
 static identity_t find(unsigned long value, unsigned long* array, unsigned long size);
@@ -86,9 +84,9 @@ void parse(parser_data* data, FILE* file) {
         char* val = strtok(line,",;");
         if (strcmp(val, "drone") == 0) {
             data->drones[data->drone_nbr].power_capacity = strtod(strtok(NULL, ",;"), NULL);
-            data->drones[data->drone_nbr].speed = strtod(strtok(NULL, ",;"), NULL);
             data->drones[data->drone_nbr].trunk.weight_capacity = strtod(strtok(NULL,",;"), NULL);
             data->drones[data->drone_nbr].trunk.volume_capacity = strtod(strtok(NULL,",;"), NULL);
+            data->drones[data->drone_nbr].speed = strtod(strtok(NULL, ",;"), NULL);
             ++data->drone_nbr;
         } else if (strcmp(val, "colis") == 0) {
             data->packages[data->package_nbr].weight = strtod(strtok(NULL, ",;"), NULL);
@@ -223,8 +221,8 @@ void print_parsed_data(parser_data* data) {
 
     printf("%d Drones.", data->drone_nbr);
     for (unsigned long int i = 0 ; i < data->drone_nbr ; ++i) {
-        printf("\n\tDrone #%ld :\n\t\tPower trunk : %.2lf\n\t\tVolume capa : %.2lf\n\t\tWeight capa : %.2lf", i,
-            data->drones[i].power_capacity, data->drones[i].trunk.volume_capacity, data->drones[i].trunk.weight_capacity);
+        printf("\n\tDrone #%ld :\n\t\tPower trunk : %.2lf\n\t\tVolume capa : %.2lf\n\t\tSpeed : %.2lf\n\t\tWeight capa : %.2lf", i,
+            data->drones[i].power_capacity, data->drones[i].trunk.volume_capacity, data->drones[i].speed, data->drones[i].trunk.weight_capacity);
     }
 
     printf("\n\n%d Packages.", data->package_nbr);
@@ -276,12 +274,13 @@ void print_simulation_data(sim_data* data) {
 
     printf("\n\n\033[0m-------------------------\n\033[34mDrones :");
     for (unsigned long int i = 0 ; i < data->drone_nbr ; i++) {
-        printf("\n\tDrone #%lu :\n\t\tFuel :                    %.2lf/%.2lf\n\t\tWeight max :              %.2lf\n\t\tVolume max :              %.2lf\n\t\tDistance to client :      %.2lf\n\t\tDistance to Mother Ship : %.2lf\n\t\t%s",
+        printf("\n\tDrone #%lu :\n\t\tFuel :                    %.2lf/%.2lf\n\t\tWeight max :              %.2lf\n\t\tVolume max :              %.2lf\n\t\tSpeed :                   %.2lf\n\t\tDistance to client :      %.2lf\n\t\tDistance to Mother Ship : %.2lf\n\t\t%s",
                 i,
                 data->drones[i].fuel,
                 data->drones[i].max_fuel,
                 data->drones[i].max_package_weight,
                 data->drones[i].max_package_volume,
+                data->drones[i].speed,
                 data->drones[i].client_distance,
                 data->drones[i].mothership_distance,
                 data->drones[i].package != NULL ? "Has a package" : "Hasn't got any package");

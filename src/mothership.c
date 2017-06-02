@@ -71,6 +71,7 @@ static size_t m_remaining_hunter_nbr;
 static identity_t* m_package_id_by_drone_id;
 static bool* m_drones_going_to_client;
 static bool* m_remaining_packages;
+static bool* m_busy_clients;
 
 void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* hunters_p, int msqid) {
     // initializing
@@ -106,15 +107,25 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
         m_remaining_packages[i] = true;
     }
 
+    m_busy_clients = (bool*) malloc(sizeof(bool) * this->client_nbr);
+    for (size_t i = this->client_nbr; i--;) {
+        m_busy_clients[i] = false;
+    }
+
+    size_t nb_airways = (size_t) ceil(2 * M_PI / AIRWAY_SIZE);
+    bool* used_airway_this_turn = (bool*) malloc(sizeof(bool) * nb_airways);
+
     // wait for drones, hunters and clients.
     wait_for(m_remaining_drone_nbr + m_remaining_hunter_nbr + m_remaining_client_nbr);
 
     forever {
         init_timer();
 
-        clean_shared_memory();
         // check messages from drones
         printf("=======> Mothership check messages.\n");
+        for (size_t i = nb_airways; i--;) {
+            used_airway_this_turn[i] = false;
+        }
         message_t message;
         unsigned long int nbr_of_packages_that_can_be_loaded = this->package_throughput;
         while (msgrcv(m_msqid, &message, sizeof(message_t), getpid(), IPC_NOWAIT) != -1) {
@@ -124,17 +135,31 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
             } else {
                 switch (message.msg_id) {
                     case ASK_DEPARTURE_MSG: {
-                        message_t answer = make_message(message.pid, DEPART_DRONE_MSG);
-                        if (msgsnd(msqid, &answer, sizeof(message_t), IPC_NOWAIT) == -1) {
-                            fail_fast("ASK_DEPARTURE_MSG: msgsnd failed!");
-                        }
                         if (m_drones_going_to_client[drone_id]) {
+                            message_t answer = make_message(message.pid, DEPART_DRONE_MSG);
+                            if (msgsnd(msqid, &answer, sizeof(message_t), IPC_NOWAIT) == -1) {
+                                fail_fast("ASK_DEPARTURE_MSG: msgsnd failed!");
+                            }
+
                             m_drones_going_to_client[drone_id] = false;
+                            m_busy_clients[this->packages[m_package_id_by_drone_id[drone_id]].client_id] = false;
+                            m_package_id_by_drone_id[drone_id] = BAD_ID;
                             printf("Authorized drone %lu to leave the client.\n", drone_id);
                         } else {
-                            m_drones_going_to_client[drone_id] = true;
-                            printf("Authorized drone %lu to leave the mothership.\n", drone_id);
-                            add_flying_drone(message.pid);
+                            airway_t airway = this->clients[this->packages[m_package_id_by_drone_id[drone_id]].client_id].airway;
+                            if (used_airway_this_turn[airway]) {
+                                printf("Did not authorized drone %lu to leave the mothership: airway not available.\n", drone_id);
+                            } else {
+                                message_t answer = make_message(message.pid, DEPART_DRONE_MSG);
+                                if (msgsnd(msqid, &answer, sizeof(message_t), IPC_NOWAIT) == -1) {
+                                    fail_fast("ASK_DEPARTURE_MSG: msgsnd failed!");
+                                }
+
+                                used_airway_this_turn[airway] = true;
+                                m_drones_going_to_client[drone_id] = true;
+                                printf("Authorized drone %lu to leave the mothership.\n", drone_id);
+                                add_flying_drone(message.pid);
+                            }
                         }
                         break;
                     }
@@ -160,6 +185,8 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
                                 if (msgsnd(msqid, &answer, sizeof(message_t), IPC_NOWAIT) == -1) {
                                     fail_fast("ASK_PACKAGE_MSG: msgsnd failed!");
                                 }
+                                m_busy_clients[this->packages[package_id].client_id] = true;
+                                m_package_id_by_drone_id[drone_id] = package_id;
                                 --nbr_of_packages_that_can_be_loaded;
                             } else {
                                 printf(" No appropriate package for it, powering it off.\n");
@@ -205,9 +232,13 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
         tick();
 
         wait_timer();
+
+        if (m_remaining_drone_nbr == 0) {
+            break;
+        }
     }
 
-    printf("exiting...\n");
+    printf("\n-------- End simulation... --------\n");
     clean();
 }
 
@@ -313,10 +344,11 @@ bool find_appropriate_package_for_drone(identity_t drone_id, identity_t* package
         bool found = false;
         size_t i;
         for (i = this->package_nbr; i--;) {
-            // FIXME: take into account client distance and drone speed and power level.
             if (m_remaining_packages[i]
                     && this->packages[i].weight <= drone.max_package_weight
-                    && this->packages[i].volume <= drone.max_package_volume) {
+                    && this->packages[i].volume <= drone.max_package_volume
+                    && drone.max_fuel * drone.speed > this->clients[this->packages[i].client_id].mothership_distance * 2
+                    && !m_busy_clients[this->packages[i].client_id]) {
                 found = true;
                 *package_id_found = i;
                 m_remaining_packages[i] = false;
