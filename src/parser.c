@@ -101,8 +101,8 @@ void parse(parser_data* data, FILE* file) {
             ++data->client_nbr;
         } else if (strcmp(val, "chasseur") == 0) {
             data->hunters[data->hunter_nbr].ammo = strtoul(strtok(NULL,",;"), NULL, 10);
-            data->hunters[data->hunter_nbr].accuracy = strtof(strtok(NULL,",;"), NULL);
             data->hunters[data->hunter_nbr].reload_time = strtoul(strtok(NULL,",;"), NULL, 10);
+            data->hunters[data->hunter_nbr].accuracy = strtof(strtok(NULL,",;"), NULL);
             ++data->hunter_nbr;
         } else if (strcmp(val, "vaisseau") == 0) {
             data->mothership.coord[parser_x] = strtod(strtok(NULL,",;"), NULL);

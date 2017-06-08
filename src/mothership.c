@@ -127,7 +127,7 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
         init_timer();
 
         // check messages from drones
-        printf("=======> Mothership check messages.\n");
+        //printf("=======> Mothership check messages.\n");
         for (size_t i = nb_airways; i--;) {
             used_airway_this_turn[i] = false;
         }
@@ -228,7 +228,7 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
         }
 
         if (errno == ENOMSG) {
-            printf("<======= No more message.\n");
+            //printf("<======= No more message.\n");
         } else {
             perror("msgrcv");
             fail_fast("Aborting...\n");
@@ -389,6 +389,9 @@ void sigchild_handler(int ignored) {
             if (m_drones_p[i] == pid) {
                 //TODO: something with status
                 printf("/!\\ Drone %lu died (pid %d).\n", find_drone_id_by_pid(pid), pid);
+                if (drone_is_flying(pid)) {
+                    remove_flying_drone(pid);
+                }
                 --m_remaining_drone_nbr;
                 if (m_is_drone_turn) {
                     sem_post(mother_sem);

@@ -11,15 +11,23 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <signal.h>
-
+#include <stdlib.h> /* srand, rand */
+#include <time.h>   /* time */
 
 #include "utility.h"
 #include "hunter.h"
+#include "shm_communication.h"
 
 void hunter_main(hunter_t me) {
     sigset_t mask;
     sigaddset(&mask, MOTHERSHIP_SIGNAL);
     sigprocmask(SIG_BLOCK, &mask, NULL);
+
+    ticks_t waiting_time = me.shoot_interval;
+
+    srand(time(NULL));
+
+    map_shared_memory();
 
     // I am ready
     sem_post(mother_sem);
@@ -28,7 +36,30 @@ void hunter_main(hunter_t me) {
     wait_mothership_signal();
 
     forever {
-        // TODO
+        --waiting_time;
+        if (waiting_time == 0) {
+            size_t nb_flying_drones = get_number_of_flying_drones();
+            if (nb_flying_drones > 0) {
+                printf("Hunter %d: shot! … ", getpid());
+                --me.ammo;
+                if ((rand() % 100 + 1) <= me.accuracy) { // successful shot!
+                    pid_t* flying_drones_p = get_flying_drones();
+                    pid_t selected_pid = flying_drones_p[rand() % nb_flying_drones];
+                    printf("Got a drone (pid %d)!\n", selected_pid);
+                    kill(selected_pid, SIGKILL);
+                } else {
+                    printf("Hit nothing.\n");
+                }
+
+                if (me.ammo == 0) {
+                    printf("Hunter %d has no more ammo and go back home.\n", getpid());
+                    unmap_shared_memory();
+                    exit(GO_HOME);
+                }
+
+                waiting_time = me.shoot_interval;
+            }
+        }
 
         sem_post(mother_sem);
         wait_mothership_signal();
