@@ -58,6 +58,7 @@ void drone_main(drone_t me, int* clients_pipes, unsigned int number_of_clients, 
 
     m_state.going_to_client = true;
     m_state.run = &loading_state;
+    m_clients_pipes = clients_pipes;
 
     m_sdata = sdata;
 
@@ -92,6 +93,7 @@ void flying_state() {
     }
 
     if (m_me.fuel < 0) {
+        printf("Crashing !\n");
         clean();
         exit(DIED);
     }
@@ -104,10 +106,8 @@ void delivering_state() {
 
     FILE* client = fdopen(m_clients_pipes[m_me.package->client_id * 2], "r");
     unsigned long waiting_time;
-    printf("tick\n");
     fscanf(client, "%lu", &waiting_time);
     //todo: what if the client does not want the package
-    printf("tack\n");
     while(waiting_time--) {
         tick();
     }

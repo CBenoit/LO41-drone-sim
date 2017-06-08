@@ -151,16 +151,16 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
                             m_package_id_by_drone_id[drone_id] = BAD_ID;
                             printf("Authorized drone %lu to leave the client.\n", drone_id);
                         } else {
-                            airway_t airway = this->clients[this->packages[m_package_id_by_drone_id[drone_id]].client_id].airway;
-                            if (used_airway_this_turn[airway]) {
-                                printf("Did not authorized drone %lu to leave the mothership: airway not available.\n", drone_id);
+                            size_t airway_idx = this->clients[this->packages[m_package_id_by_drone_id[drone_id]].client_id].airway + nb_airways / 2;
+                            if (used_airway_this_turn[airway_idx]) {
+                                //printf("Did not authorized drone %lu to leave the mothership: airway not available.\n", drone_id);
                             } else {
                                 message_t answer = make_message(message.pid, DEPART_DRONE_MSG);
                                 if (msgsnd(msqid, &answer, sizeof(message_t), IPC_NOWAIT) == -1) {
                                     fail_fast("ASK_DEPARTURE_MSG: msgsnd failed!");
                                 }
 
-                                used_airway_this_turn[airway] = true;
+                                used_airway_this_turn[airway_idx] = true;
                                 m_drones_going_to_client[drone_id] = true;
                                 printf("Authorized drone %lu to leave the mothership.\n", drone_id);
                                 add_flying_drone(message.pid);
