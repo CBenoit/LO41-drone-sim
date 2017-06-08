@@ -54,6 +54,7 @@ void hunter_main(hunter_t me) {
                 if (me.ammo == 0) {
                     printf("Hunter %d has no more ammo and go back home.\n", getpid());
                     unmap_shared_memory();
+                    sem_close(mother_sem);
                     exit(GO_HOME);
                 }
 

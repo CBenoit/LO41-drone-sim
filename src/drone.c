@@ -104,9 +104,9 @@ void delivering_state() {
     dprintf(m_clients_pipes[m_me.package->client_id * 2 + 1], "%lf\n", m_me.package->volume);
     tick();
 
-    FILE* client = fdopen(m_clients_pipes[m_me.package->client_id * 2], "r");
-    unsigned long waiting_time;
-    fscanf(client, "%lu", &waiting_time);
+    char msg[256];
+    read(m_clients_pipes[m_me.package->client_id * 2], msg, 256);
+    unsigned long waiting_time = strtoul(msg, NULL, 10);
     //todo: what if the client does not want the package
     while(waiting_time--) {
         tick();
@@ -185,6 +185,7 @@ void send(message_t* msg) {
 }
 
 void clean() {
+    sem_close(mother_sem);
     close_pipes(m_clients_nbr, m_clients_pipes);
     free(m_clients_pipes);
     unload_simulation(m_sdata);

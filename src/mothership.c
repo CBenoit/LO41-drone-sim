@@ -118,7 +118,7 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
     }
 
     size_t nb_airways = (size_t) ceil(2 * M_PI / AIRWAY_SIZE);
-    bool* used_airway_this_turn = (bool*) malloc(sizeof(bool) * nb_airways);
+    bool used_airway_this_turn[nb_airways];
 
     // wait for drones, hunters and clients.
     wait_for(m_remaining_drone_nbr + m_remaining_hunter_nbr + m_remaining_client_nbr);
@@ -316,6 +316,10 @@ void clean() {
 
     send_sig_to_all(SIGKILL);
 
+    free(m_package_id_by_drone_id);
+    free(m_remaining_packages);
+    free(m_busy_clients);
+    free(m_drones_going_to_client);
     free(m_drones_p);
     free(m_clients_p);
     free(m_hunters_p);

@@ -18,11 +18,15 @@
 #include "utility.h"
 #include "client.h"
 
+void clean(int);
+
 void client_main(int pipes[2]) {
     sigset_t mask;
     sigaddset(&mask, MOTHERSHIP_SIGNAL);
     sigprocmask(SIG_BLOCK, &mask, NULL);
     srand((unsigned int)time(NULL));
+
+    signal(SIGPIPE, &clean);
 
     // I am ready
     sem_post(mother_sem);
@@ -42,3 +46,6 @@ void client_main(int pipes[2]) {
     }
 }
 
+void clean(int ignored) {
+    sem_close(mother_sem);
+}

@@ -83,6 +83,7 @@ void start(sim_data* sdata) {
         if (drones_p[i] == 0) {
             // I'm a drone !
             free(drones_p);
+            free(hunters_p);
             // drone_main(...) should free clients_pipes and close this_drone_pipes
             drone_main(sdata->drones[i], clients_pipes, sdata->mothership.client_nbr, msqid, sdata);
             exit(EXIT_SUCCESS);
@@ -103,6 +104,7 @@ void start(sim_data* sdata) {
             fcntl(this_client_pipes[0], F_SETFL, fcntl(this_client_pipes[0], F_GETFL) | O_NONBLOCK);
 
             // Freeing unused memory
+            free(hunters_p);
             free(clients_pipes);
             free(drones_p);
             free(clients_p);
