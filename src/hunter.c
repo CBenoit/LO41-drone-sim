@@ -25,7 +25,7 @@ void hunter_main(hunter_t me) {
 
     ticks_t waiting_time = me.shoot_interval;
 
-    srand(time(NULL));
+    srand((unsigned int) time(NULL));
 
     map_shared_memory();
 
@@ -44,7 +44,7 @@ void hunter_main(hunter_t me) {
                 --me.ammo;
                 if ((rand() % 100 + 1) <= me.accuracy) { // successful shot!
                     pid_t* flying_drones_p = get_flying_drones();
-                    pid_t selected_pid = flying_drones_p[rand() % nb_flying_drones];
+                    pid_t selected_pid = flying_drones_p[(size_t) rand() % nb_flying_drones];
                     printf("Got a drone (pid %d)!\n", selected_pid);
                     kill(selected_pid, SIGKILL);
                 } else {

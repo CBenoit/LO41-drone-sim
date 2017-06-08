@@ -151,7 +151,9 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
                             m_package_id_by_drone_id[drone_id] = BAD_ID;
                             printf("Authorized drone %lu to leave the client.\n", drone_id);
                         } else {
-                            size_t airway_idx = this->clients[this->packages[m_package_id_by_drone_id[drone_id]].client_id].airway + nb_airways / 2;
+                            size_t airway_idx =
+                                (size_t) this->clients[this->packages[m_package_id_by_drone_id[drone_id]].client_id].airway
+                                + nb_airways / 2;
                             if (used_airway_this_turn[airway_idx]) {
                                 //printf("Did not authorized drone %lu to leave the mothership: airway not available.\n", drone_id);
                             } else {
@@ -387,8 +389,30 @@ void sigchild_handler(int ignored) {
     while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
         for (i = m_sdata->drone_nbr ; i-- ; ) {
             if (m_drones_p[i] == pid) {
-                //TODO: something with status
-                printf("/!\\ Drone %lu died (pid %d).\n", find_drone_id_by_pid(pid), pid);
+                if (WIFEXITED(status)) {
+                    int exit_status = WEXITSTATUS(status);
+                    if (exit_status == GRACEFULLY_STOPPED) {
+                        printf("/!\\ Drone %lu gracefully stopped (pid %d).\n", find_drone_id_by_pid(pid), pid);
+                    } else if (exit_status == EXPLODED) {
+                        printf("/!\\ Drone %lu exploded (pid %d).\n", find_drone_id_by_pid(pid), pid);
+                    } else if (exit_status == UNEXPECTEDLY_STOPPED) {
+                        printf("/!\\ Drone %lu unexpectedly stopped (pid %d).\n", find_drone_id_by_pid(pid), pid);
+                    } else if (exit_status == DIED) {
+                        printf("/!\\ Drone %lu died (pid %d).\n", find_drone_id_by_pid(pid), pid);
+                    } else {
+                        printf("/!\\ Drone %lu exited for an unknown reason with status %d (pid %d).\n",
+                                find_drone_id_by_pid(pid), exit_status, pid);
+                    }
+                } else if (WIFSIGNALED(status)) {
+                    int sig = WTERMSIG(status);
+                    if (sig == SIGKILL) {
+                        printf("/!\\ Drone %lu was killed (pid %d).\n", find_drone_id_by_pid(pid), pid);
+                    } else {
+                        printf("/!\\ Drone %lu unexpectedly ended with sig %d (pid %d).\n",
+                                find_drone_id_by_pid(pid), sig, pid);
+                    }
+                }
+
                 if (drone_is_flying(pid)) {
                     remove_flying_drone(pid);
                 }
@@ -402,8 +426,17 @@ void sigchild_handler(int ignored) {
         if (i == -1) {
             for (i = m_sdata->hunter_nbr ; i-- ;) {
                 if (m_hunters_p[i] == pid) {
-                    printf("/!\\ Hunter died (pid %d).\n", pid);
-                    // TODO: something with the status
+                    if (WIFEXITED(status)) {
+                        int exit_status = WEXITSTATUS(status);
+                        if (exit_status == GO_HOME) {
+                            printf("/!\\ Hunter go back home (pid %d).\n", pid);
+                        } else {
+                            printf("/!\\ Hunter exited for an unknown reason with status %d (pid %d).\n", exit_status, pid);
+                        }
+                    } else if (WIFSIGNALED(status)) {
+                        printf("/!\\ Hunter unexpectedly ended with sig %d (pid %d).\n", WTERMSIG(status), pid);
+                    }
+
                     --m_remaining_hunter_nbr;
                     if (m_is_hunter_turn) {
                         sem_post(mother_sem);
@@ -416,7 +449,6 @@ void sigchild_handler(int ignored) {
                 for (i = m_sdata->mothership.client_nbr ; i-- ;) {
                     if (m_clients_p[i] == pid) {
                         printf("/!\\ Client died (pid %d).\n", pid);
-                        // TODO: something with the status
                         --m_remaining_client_nbr;
                         if (m_is_client_turn) {
                             sem_post(mother_sem);
