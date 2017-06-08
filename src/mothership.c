@@ -33,6 +33,8 @@
 #define TICK_MIN_TIME_MSEC 500
 #define BAD_ID ((identity_t) -1)
 
+// === private functions ===
+
 static void init_timer(void);
 static void wait_timer(void);
 static void send_sig_to_list(int sig, pid_t* list, size_t len);
@@ -48,7 +50,8 @@ static identity_t find_drone_id_by_pid(pid_t drone_pid);
 static void interruption_handler(int);
 static void sigchild_handler(int);
 
-// OOP
+// === private variables
+
 static mothership_t* this;
 
 static sim_data* m_sdata  = NULL;
@@ -72,6 +75,8 @@ static identity_t* m_package_id_by_drone_id;
 static bool* m_drones_going_to_client;
 static bool* m_remaining_packages;
 static bool* m_busy_clients;
+
+// === implementations
 
 void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* hunters_p, int msqid) {
     // initializing

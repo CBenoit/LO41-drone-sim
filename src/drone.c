@@ -44,10 +44,9 @@ static int m_msqid;
 static struct state m_state;
 static int* m_clients_pipes;
 static unsigned int m_clients_nbr;
-static int m_pipes[2];
 static sim_data* m_sdata;
 
-void drone_main(drone_t me, int* clients_pipes, unsigned int number_of_clients, int my_pipes[2], int msqid, sim_data* sdata) {
+void drone_main(drone_t me, int* clients_pipes, unsigned int number_of_clients, int msqid, sim_data* sdata) {
 
     sigset_t mask;
     sigaddset(&mask, MOTHERSHIP_SIGNAL);
@@ -56,8 +55,6 @@ void drone_main(drone_t me, int* clients_pipes, unsigned int number_of_clients, 
     m_me = me;
     m_msqid = msqid;
     m_clients_nbr = number_of_clients;
-    m_pipes[0] = my_pipes[0];
-    m_pipes[1] = my_pipes[1];
 
     m_state.going_to_client = true;
     m_state.run = &loading_state;
@@ -66,8 +63,6 @@ void drone_main(drone_t me, int* clients_pipes, unsigned int number_of_clients, 
 
     // I am ready
     tick();
-
-    m_me.fuel = my_pipes[1];
 
     forever {
         m_state.run();
@@ -104,7 +99,7 @@ void flying_state() {
 
 void delivering_state() {
 
-    dprintf(m_clients_pipes[m_me.package->client_id * 2 + 1], "%d;%lf\n", m_pipes[0], m_me.package->volume);
+    dprintf(m_clients_pipes[m_me.package->client_id * 2 + 1], "%lf\n", m_me.package->volume);
     tick();
 
     FILE* client = fdopen(m_clients_pipes[m_me.package->client_id * 2], "r");
@@ -191,7 +186,6 @@ void send(message_t* msg) {
 
 void clean() {
     close_pipes(m_clients_nbr, m_clients_pipes);
-    close(m_pipes[1]);
     free(m_clients_pipes);
     unload_simulation(m_sdata);
 }

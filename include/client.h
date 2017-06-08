@@ -11,7 +11,7 @@
 #ifndef DRONE_SIM_CLIENT
 #define DRONE_SIM_CLIENT
 
-void client_main(int, int*, unsigned int);
+void client_main(int*);
 
 #endif /* ifndef DRONE_SIM_CLIENT */
 

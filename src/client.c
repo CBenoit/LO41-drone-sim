@@ -18,7 +18,7 @@
 #include "utility.h"
 #include "client.h"
 
-void client_main(int read_filedesc, int* drones_pipes, unsigned int number_of_drones) {
+void client_main(int pipes[2]) {
     sigset_t mask;
     sigaddset(&mask, MOTHERSHIP_SIGNAL);
     sigprocmask(SIG_BLOCK, &mask, NULL);
@@ -32,17 +32,13 @@ void client_main(int read_filedesc, int* drones_pipes, unsigned int number_of_dr
 
     char msg[256];
     forever {
-        if (read(read_filedesc, msg, 256) != -1) {
-            int write_filedesc = (int)strtol(strtok(msg, ";"), NULL, 10);
-            double volume = strtod(strtok(NULL, ";"), NULL);
-            dprintf(write_filedesc, "%lu", (unsigned long)(volume / 10. + 1 + rand() % 4));
+        if (read(pipes[0], msg, 256) != -1) {
+            double volume = strtod(msg, NULL);
+            dprintf(pipes[1], "%lu", (unsigned long) (volume / 10. + 1 + rand() % 4));
         }
 
         sem_post(mother_sem);
         wait_mothership_signal();
     }
-
-    close_pipes(number_of_drones, drones_pipes);
-    free(drones_pipes);
 }
 

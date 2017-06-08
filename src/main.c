@@ -75,7 +75,6 @@ void start(sim_data* sdata) {
 
     // Creating pipes so that drones and clients can communicate
     int* clients_pipes = open_pipes(sdata->mothership.client_nbr);
-    int* drones_pipes  = open_pipes(sdata->drone_nbr);
 
     // Creating drones
     pid_t* drones_p = (pid_t*) malloc(sdata->drone_nbr * sizeof(pid_t));
@@ -84,13 +83,8 @@ void start(sim_data* sdata) {
         if (drones_p[i] == 0) {
             // I'm a drone !
             free(drones_p);
-            close_pipes(i, drones_pipes);
-            close_pipes(sdata->drone_nbr - i - 1, drones_pipes + 2*i + 2);
-            close(drones_pipes[2*i]);
-            int this_drone_pipes[2] = { drones_pipes[2*i], drones_pipes[2*i + 1] };
-            free(drones_pipes);
             // drone_main(...) should free clients_pipes and close this_drone_pipes
-            drone_main(sdata->drones[i], clients_pipes, sdata->mothership.client_nbr, this_drone_pipes, msqid, sdata);
+            drone_main(sdata->drones[i], clients_pipes, sdata->mothership.client_nbr, msqid, sdata);
             exit(EXIT_SUCCESS);
         }
     }
@@ -104,10 +98,9 @@ void start(sim_data* sdata) {
             // Cleaning unused pipes
             close_pipes(i, clients_pipes);
             close_pipes(sdata->mothership.client_nbr - i - 1, clients_pipes + 2*i + 2);
-            close(clients_pipes[2*i + 1]);
-            int filedesc = clients_pipes[2*i];
+            int this_client_pipes[2] = { clients_pipes[2*i], clients_pipes[2*i + 1] };
 
-            fcntl(filedesc, F_SETFL, fcntl(filedesc, F_GETFL) | O_NONBLOCK);
+            fcntl(this_client_pipes[0], F_SETFL, fcntl(this_client_pipes[0], F_GETFL) | O_NONBLOCK);
 
             // Freeing unused memory
             free(clients_pipes);
@@ -117,15 +110,13 @@ void start(sim_data* sdata) {
             unload_simulation(sdata);
 
             // Client ! Go !
-            client_main(filedesc, drones_pipes, sdata->drone_nbr);
+            client_main(this_client_pipes);
             exit(EXIT_SUCCESS);
         }
     }
 
     close_pipes(sdata->mothership.client_nbr, clients_pipes);
     free(clients_pipes);
-    close_pipes(sdata->drone_nbr, drones_pipes);
-    free(drones_pipes);
     // mothership_main function should free all that.
     mothership_main(sdata, drones_p, clients_p, hunters_p, msqid);
 }

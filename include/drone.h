@@ -14,7 +14,7 @@
 #include "structs.h"
 #include "parser_structs.h"
 
-void drone_main(drone_t, int*, unsigned int, int*, int, sim_data*);
+void drone_main(drone_t, int*, unsigned int, int, sim_data*);
 
 #endif /* ifndef DRONE_SIM_DRONE */
 
