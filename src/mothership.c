@@ -22,7 +22,9 @@
 #include <sys/wait.h>
 #include <math.h>
 #include <signal.h>
+#include <string.h>
 
+#include "colors.h"
 #include "mothership.h"
 #include "utility.h"
 #include "mq_communication.h"
@@ -123,20 +125,45 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
     // wait for drones, hunters and clients.
     wait_for(m_remaining_drone_nbr + m_remaining_hunter_nbr + m_remaining_client_nbr);
 
+    unsigned long tick_count = 0;
+    bool had_msg = false;
+
     forever {
         init_timer();
 
         // check messages from drones
-        //printf("=======> Mothership check messages.\n");
         for (size_t i = nb_airways; i--;) {
             used_airway_this_turn[i] = false;
         }
         message_t message;
         unsigned long int nbr_of_packages_that_can_be_loaded = this->package_throughput;
         while (msgrcv(m_msqid, &message, sizeof(message_t), getpid(), IPC_NOWAIT) != -1) {
+            if (!had_msg) {
+                char header[256];
+                sprintf(header, "Tick %lu", tick_count);
+                size_t len = strlen(header);
+
+                printf("#------------------------------------------#\n");
+                printf("|");
+                for (size_t i = len / 2 ; i < 21 ; ++i) {
+                    printf(" ");
+                }
+
+                for(size_t i = 0 ; i < len ; ++i) {
+                    putchar(header[i]);
+                }
+
+                for (size_t i = len / 2 + len % 2; i < 21 ; ++i) {
+                    printf(" ");
+                }
+
+                printf("|\n");
+                printf("#------------------------------------------#\n\n");
+            }
+            had_msg = true;
             identity_t drone_id = find_drone_id_by_pid(message.pid);
             if (drone_id == BAD_ID) {
-                printf("Found no drone corresponding to the pid %d.\n", message.pid);
+                printf(FLRED"Found no drone corresponding to the pid %d.\n"RESET, message.pid);
             } else {
                 switch (message.msg_id) {
                     case ASK_DEPARTURE_MSG: {
@@ -149,7 +176,7 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
                             m_drones_going_to_client[drone_id] = false;
                             m_busy_clients[this->packages[m_package_id_by_drone_id[drone_id]].client_id] = false;
                             m_package_id_by_drone_id[drone_id] = BAD_ID;
-                            printf("Authorized drone %lu to leave the client.\n", drone_id);
+                            printf(FLBLUE"Authorized drone "FYELLOW""BOLD"#D%lu"RESET""FLBLUE" to come back to the mothership.\n"RESET, drone_id);
                         } else {
                             size_t airway_idx =
                                 (size_t) this->clients[this->packages[m_package_id_by_drone_id[drone_id]].client_id].airway
@@ -164,19 +191,19 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
 
                                 used_airway_this_turn[airway_idx] = true;
                                 m_drones_going_to_client[drone_id] = true;
-                                printf("Authorized drone %lu to leave the mothership.\n", drone_id);
+                                printf(FLBLUE"Authorized drone "FYELLOW""BOLD"#D%lu"RESET""FLBLUE" to leave the mothership.\n"RESET, drone_id);
                                 add_flying_drone(message.pid);
                             }
                         }
                         break;
                     }
                     case NOTIFY_ARRIVAL_MSG: {
-                        printf("Received notify arrival message.\n");
+                        printf(FMAGENTA"Received notify arrival message.\n"RESET);
                         if (drone_is_flying(message.pid)) {
                             if (m_drones_going_to_client[drone_id]) {
-                                printf("Drone %lu arrived at the client.\n", drone_id);
+                                printf(FMAGENTA"\tDrone "FYELLOW""BOLD"#D%lu"RESET""FMAGENTA" arrived to its client.\n"RESET, drone_id);
                             } else {
-                                printf("Drone %lu came back at the mothership.\n", drone_id);
+                                printf(FMAGENTA"\tDrone "FYELLOW""BOLD"#D%lu"RESET""FMAGENTA" came back to the mothership.\n"RESET, drone_id);
                                 remove_flying_drone(message.pid);
                             }
                         }
@@ -184,10 +211,10 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
                     }
                     case ASK_PACKAGE_MSG: {
                         if (nbr_of_packages_that_can_be_loaded > 0) {
-                            printf("Drone %lu asked a package.", drone_id);
+                            printf(FCYAN"Drone "FYELLOW""BOLD"#D%lu"RESET""FCYAN" asked a package.\n"RESET, drone_id);
                             identity_t package_id;
                             if (find_appropriate_package_for_drone(message.identity_value, &package_id)) {
-                                printf(" Appropriate package found (id %lu).\n", package_id);
+                                printf(FCYAN"\tAppropriate package found (package "FYELLOW""BOLD"#P%lu"RESET""FCYAN").\n"RESET, package_id);
                                 message_t answer = make_identity_message(message.pid, LOAD_PACKAGE_MSG, package_id);
                                 if (msgsnd(msqid, &answer, sizeof(message_t), IPC_NOWAIT) == -1) {
                                     fail_fast("ASK_PACKAGE_MSG: msgsnd failed!");
@@ -196,29 +223,33 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
                                 m_package_id_by_drone_id[drone_id] = package_id;
                                 --nbr_of_packages_that_can_be_loaded;
                             } else {
-                                printf(" No appropriate package for it, powering it off.\n");
+                                printf(FCYAN"\tNo appropriate package for it. Powering it off.\n"RESET);
                                 message_t answer = make_message(message.pid, POWER_OFF_MSG);
                                 if (msgsnd(msqid, &answer, sizeof(message_t), IPC_NOWAIT) == -1) {
                                     fail_fast("ASK_PACKAGE_MSG: msgsnd failed!");
                                 }
                             }
+                        } else {
+                            printf(FCYAN"Drone "FYELLOW""BOLD"#D%lu"RESET""FCYAN" asked a package, but has to wait for other drones to be served.\n"RESET, drone_id);
                         }
                         break;
                     }
                     case ASK_POWER_MSG: {
                         if (m_remaining_power_loading_slots > 0) {
-                            printf("Give a power loading slot to drone %lu.\n", drone_id);
+                            printf(FGREEN"Give a power loading slot to drone "BOLD""FYELLOW"#D%lu"RESET""FGREEN".\n"RESET, drone_id);
                             ticks_t required_ticks = (ticks_t) ceil(message.double_value / this->power_throughput);
                             message_t answer = make_ticks_message(message.pid, POWER_DRONE_MSG, required_ticks);
                             if (msgsnd(msqid, &answer, sizeof(message_t), IPC_NOWAIT) == -1) {
                                 fail_fast("ASK_POWER_MSG: msgsnd failed!");
                             }
                             --m_remaining_power_loading_slots;
+                        } else {
+                            printf(FGREEN"Drone "BOLD""FYELLOW"#D%lu"RESET""FGREEN" requested a power loading slot, but there is none available.\n"RESET, drone_id);
                         }
                         break;
                     }
                     case END_POWER_MSG: {
-                        printf("Drone %lu left a power loading slot.\n", drone_id);
+                            printf(FGREEN"Drone "BOLD""FYELLOW"#D%lu"RESET""FGREEN" left a power loading slot.\n"RESET, drone_id);
                         ++m_remaining_power_loading_slots;
                         break;
                     }
@@ -226,16 +257,19 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
                         fail_fast("Unexpected message received.\n");
                         // no need to break
                 }
+                printf("\n");
             }
         }
 
-        if (errno == ENOMSG) {
-            //printf("<======= No more message.\n");
-        } else {
+        if (errno != ENOMSG) {
             perror("msgrcv");
             fail_fast("Aborting...\n");
         }
 
+        if (had_msg) {
+            printf("--------------------------------------------\n\n");
+            had_msg = false;
+        }
         tick();
 
         wait_timer();
@@ -243,6 +277,7 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
         if (m_remaining_drone_nbr == 0) {
             break;
         }
+        ++tick_count;
     }
 
     printf("\n-------- End simulation... --------\n");
@@ -300,7 +335,7 @@ void tick() {
 }
 
 void fail_fast(const char* message) {
-    printf(message);
+    puts(message);
     clean();
     exit(EXIT_FAILURE);
 }
@@ -396,23 +431,23 @@ void sigchild_handler(int ignored) {
                 if (WIFEXITED(status)) {
                     int exit_status = WEXITSTATUS(status);
                     if (exit_status == GRACEFULLY_STOPPED) {
-                        printf("/!\\ Drone %lu gracefully stopped (pid %d).\n", find_drone_id_by_pid(pid), pid);
+                        printf("/!\\ Drone "BOLD""FYELLOW"#D%lu"RESET" gracefully stopped (pid %d).\n", find_drone_id_by_pid(pid), pid);
                     } else if (exit_status == EXPLODED) {
-                        printf("/!\\ Drone %lu exploded (pid %d).\n", find_drone_id_by_pid(pid), pid);
+                        printf("/!\\ Drone "BOLD""FYELLOW"#D%lu"RESET" exploded (pid %d).\n", find_drone_id_by_pid(pid), pid);
                     } else if (exit_status == UNEXPECTEDLY_STOPPED) {
-                        printf("/!\\ Drone %lu unexpectedly stopped (pid %d).\n", find_drone_id_by_pid(pid), pid);
+                        printf("/!\\ Drone "BOLD""FYELLOW"#D%lu"RESET" unexpectedly stopped (pid %d).\n", find_drone_id_by_pid(pid), pid);
                     } else if (exit_status == DIED) {
-                        printf("/!\\ Drone %lu died (pid %d).\n", find_drone_id_by_pid(pid), pid);
+                        printf("/!\\ Drone "BOLD""FYELLOW"#D%lu"RESET" died (pid %d).\n", find_drone_id_by_pid(pid), pid);
                     } else {
-                        printf("/!\\ Drone %lu exited for an unknown reason with status %d (pid %d).\n",
+                        printf("/!\\ Drone "BOLD""FYELLOW"#D%lu"RESET" exited for an unknown reason with status %d (pid %d).\n",
                                 find_drone_id_by_pid(pid), exit_status, pid);
                     }
                 } else if (WIFSIGNALED(status)) {
                     int sig = WTERMSIG(status);
                     if (sig == SIGKILL) {
-                        printf("/!\\ Drone %lu was killed (pid %d).\n", find_drone_id_by_pid(pid), pid);
+                        printf("/!\\ Drone "BOLD""FYELLOW"#D%lu"RESET" was killed (pid %d).\n", find_drone_id_by_pid(pid), pid);
                     } else {
-                        printf("/!\\ Drone %lu unexpectedly ended with sig %d (pid %d).\n",
+                        printf("/!\\ Drone "BOLD""FYELLOW"#D%lu"RESET" unexpectedly ended with sig %d (pid %d).\n",
                                 find_drone_id_by_pid(pid), sig, pid);
                     }
                 }
@@ -433,12 +468,12 @@ void sigchild_handler(int ignored) {
                     if (WIFEXITED(status)) {
                         int exit_status = WEXITSTATUS(status);
                         if (exit_status == GO_HOME) {
-                            printf("/!\\ Hunter go back home (pid %d).\n", pid);
+                            printf("/!\\ Hunter "BOLD""FYELLOW"#H%d"RESET" is going back home.\n", pid);
                         } else {
-                            printf("/!\\ Hunter exited for an unknown reason with status %d (pid %d).\n", exit_status, pid);
+                            printf("/!\\ Hunter "BOLD""FYELLOW"#H%d"RESET" exited for an unknown reason with status %d.\n", pid, exit_status);
                         }
                     } else if (WIFSIGNALED(status)) {
-                        printf("/!\\ Hunter unexpectedly ended with sig %d (pid %d).\n", WTERMSIG(status), pid);
+                        printf("/!\\ Hunter "BOLD""FYELLOW"#H%d"RESET" unexpectedly ended with sig %d.\n", pid, WTERMSIG(status));
                     }
 
                     --m_remaining_hunter_nbr;
@@ -466,6 +501,7 @@ void sigchild_handler(int ignored) {
                 }
             }
         }
+        printf("\n");
     }
 }
 
