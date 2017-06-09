@@ -28,7 +28,11 @@ void start(sim_data*);
 
 int main(int argc, char *argv[]) {
     sim_data data;
-    load_simulation(&data, "test.csv");
+    if (argc == 1) {
+        load_simulation(&data, "csv/default.csv");
+    } else {
+        load_simulation(&data, argv[1]);
+    }
     printf("\n\n----- Simulation data recap -----\n\n");
     print_simulation_data(&data);
     printf("\n\n------ Starting simulation ------\n\n");

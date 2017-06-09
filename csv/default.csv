@@ -27,5 +27,5 @@ colis;10;10;9;89
 
 # chasseurs
 #chasseur;qtt_munition;temps_rechargement;précision (%)
-chasseur;2;20;60
+chasseur;2;20;1
 
