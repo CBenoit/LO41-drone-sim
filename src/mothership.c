@@ -401,6 +401,7 @@ bool find_drone(identity_t id, drone_t* drone_found) {
 bool find_appropriate_package_for_drone(identity_t drone_id, identity_t* package_id_found) {
     drone_t drone;
     if (find_drone(drone_id, &drone)) {
+        unsigned long priority = 0;
         bool found = false;
         size_t i;
         for (i = this->package_nbr; i--;) {
@@ -408,12 +409,15 @@ bool find_appropriate_package_for_drone(identity_t drone_id, identity_t* package
                     && this->packages[i].weight <= drone.max_package_weight
                     && this->packages[i].volume <= drone.max_package_volume
                     && drone.max_fuel * drone.speed > this->clients[this->packages[i].client_id].mothership_distance * 2
-                    && !m_busy_clients[this->packages[i].client_id]) {
-                found = true;
+                    && !m_busy_clients[this->packages[i].client_id]
+                    && priority <= this->packages[i].priority) {
+                priority = this->packages[i].priority;
                 *package_id_found = i;
-                m_remaining_packages[i] = false;
-                break;
+                found = true;
             }
+        }
+        if (found) {
+            m_remaining_packages[*package_id_found] = false;
         }
         return found;
     } else {
