@@ -190,7 +190,8 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
                                 (size_t) this->clients[this->packages[m_package_id_by_drone_id[drone_id]].client_id].airway
                                 + nb_airways / 2;
                             if (used_airway_this_turn[airway_idx]) {
-                                //printf("Did not authorized drone %lu to leave the mothership: airway not available.\n", drone_id);
+                                printf(FLBLUE"Did not authorized drone "FYELLOW""BOLD"#D%lu"RESET""FLBLUE
+                                        " to leave the mothership: airway not available.\n", drone_id);
                             } else {
                                 message_t answer = make_message(message.pid, DEPART_DRONE_MSG);
                                 if (msgsnd(msqid, &answer, sizeof(message_t), IPC_NOWAIT) == -1) {
