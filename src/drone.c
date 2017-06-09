@@ -80,6 +80,11 @@ void flying_state() {
             m_me.mothership_distance += m_me.speed;
             --m_me.fuel;
             tick();
+            if (m_me.fuel < 0) {
+                printf("Crashing !\n");
+                clean();
+                exit(CRASHED);
+            }
         }
         m_state.run = &delivering_state;
     } else {
@@ -88,18 +93,17 @@ void flying_state() {
             m_me.client_distance += m_me.speed;
             --m_me.fuel;
             tick();
+            if (m_me.fuel < 0) {
+                printf("Crashing !\n");
+                clean();
+                exit(CRASHED);
+            }
         }
         m_state.run = &refueling_state;
     }
 
     message_t message = make_message(getppid(), NOTIFY_ARRIVAL_MSG);
     send(&message);
-
-    if (m_me.fuel < 0) {
-        printf("Crashing !\n");
-        clean();
-        exit(DIED);
-    }
 }
 
 void delivering_state() {
@@ -139,6 +143,7 @@ void refueling_state() {
     while(waiting_time--) {
         tick();
     }
+    m_me.fuel = m_me.max_fuel;
 
     message.msg_id = END_POWER_MSG;
     send(&message);
