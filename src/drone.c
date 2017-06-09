@@ -92,6 +92,9 @@ void flying_state() {
         m_state.run = &refueling_state;
     }
 
+    message_t message = make_message(getppid(), NOTIFY_ARRIVAL_MSG);
+    send(&message);
+
     if (m_me.fuel < 0) {
         printf("Crashing !\n");
         clean();
@@ -107,7 +110,6 @@ void delivering_state() {
     char msg[256];
     read(m_clients_pipes[m_me.package->client_id * 2], msg, 256);
     unsigned long waiting_time = strtoul(msg, NULL, 10);
-    //todo: what if the client does not want the package
     while(waiting_time--) {
         tick();
     }
