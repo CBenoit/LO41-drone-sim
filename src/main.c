@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <string.h>
 #include <semaphore.h>
 #include <sys/msg.h>
 
@@ -28,11 +29,33 @@ void start(sim_data*);
 
 int main(int argc, char *argv[]) {
     sim_data data;
-    if (argc == 1) {
-        load_simulation(&data, "csv/default.csv");
-    } else {
-        load_simulation(&data, argv[1]);
+    const char* file_path = "csv/default.csv";
+    data.simulation_speed = 500;
+
+    for(size_t idx = 1 ; idx < argc ; ++idx) {
+        if (!strcmp("--file", argv[idx])) {
+            if (++idx < argc) {
+                file_path = argv[idx];
+            } else {
+                printf("Missing argument after '--file'\n");
+                return EXIT_FAILURE;
+            }
+        } else if (!strcmp("--speed", argv[idx])) {
+            if (++idx < argc) {
+                data.simulation_speed = strtol(argv[idx], NULL, 10);
+            } else {
+                printf("Missing argument after '--speed'\n");
+                return EXIT_FAILURE;
+            }
+        } else {
+            printf("Unrecognized option: %s.\n", argv[idx]);
+            printf("Usage: %s [options]...\n", argv[idx]);
+            printf("\n\t--file  csv_file   Loads a specific file for the simulation");
+            printf("\n\t--speed n          Sets the duration of a tick in milliseconds\n");
+            return EXIT_FAILURE;
+        }
     }
+    load_simulation(&data, file_path);
     printf("\n\n----- Simulation data recap -----\n\n");
     print_simulation_data(&data);
     printf("\n\n------ Starting simulation ------\n\n");

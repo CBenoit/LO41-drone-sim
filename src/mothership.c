@@ -33,7 +33,6 @@
 #include "typedefs.h"
 #include "stats.h"
 
-#define TICK_MIN_TIME_MSEC 500
 #define BAD_ID ((identity_t) -1)
 
 // === private functions ===
@@ -314,8 +313,8 @@ void wait_timer() {
         diff.tv_usec = m_beg_time.tv_usec - diff.tv_usec;
     }
 
-    diff.tv_sec = TICK_MIN_TIME_MSEC / 1000 - diff.tv_sec;
-    diff.tv_usec = (TICK_MIN_TIME_MSEC - diff.tv_sec * 1000) * 1000 - diff.tv_usec;
+    diff.tv_sec = m_sdata->simulation_speed / 1000 - diff.tv_sec;
+    diff.tv_usec = (m_sdata->simulation_speed - diff.tv_sec * 1000) * 1000 - diff.tv_usec;
     if (diff.tv_sec * 1000000 + diff.tv_usec > 0) {
         usleep((useconds_t)(diff.tv_sec * 1000000 + diff.tv_usec));
     }

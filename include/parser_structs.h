@@ -74,6 +74,8 @@ typedef struct {
     drone_t* drones;
     unsigned int hunter_nbr;
     hunter_t* hunters;
+
+    long simulation_speed;
 } sim_data;
 
 #endif //DRONE_SIME_PARSER_STRUCTS
