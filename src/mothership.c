@@ -151,8 +151,8 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
                 sprintf(header, "Tick %lu", tick_count);
                 size_t len = strlen(header);
 
-                printf("#------------------------------------------#\n");
-                printf("|");
+                printf("╔══════════════════════════════════════════╗\n");
+                printf("║");
                 for (size_t i = len / 2 ; i < 21 ; ++i) {
                     printf(" ");
                 }
@@ -165,8 +165,8 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
                     printf(" ");
                 }
 
-                printf("|\n");
-                printf("#------------------------------------------#\n\n");
+                printf("║\n");
+                printf("╚══════════════════════════════════════════╝\n\n");
             }
             had_msg = true;
             identity_t drone_id = find_drone_id_by_pid(message.pid);
@@ -278,7 +278,7 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
         }
 
         if (had_msg) {
-            printf("--------------------------------------------\n\n");
+            printf("────────────────────────────────────────────\n\n");
             had_msg = false;
         }
         tick();
