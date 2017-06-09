@@ -38,7 +38,8 @@ COMPFLAGS       = -Wdisabled-optimization -Wstrict-prototypes -Wmissing-declarat
 				  -Wlogical-op -Wuninitialized -Wsuggest-final-types -Wdouble-promotion \
 				  -Wformat -Wmissing-include-dirs -Wall -pedantic -pedantic-errors      \
 				  -Wmain -Wswitch-default -Wunreachable-code -Winline -Wfloat-equal     \
-				  -Wundef -Wcast-align -Wredundant-decls -Winit-self -Wshadow
+				  -Wundef -Wcast-align -Wredundant-decls -Winit-self -Wshadow           \
+				  -Wformat-security -fno-stack-protector
 LEAKCHECKER = valgrind --leak-check=full
 #Compile standard
 COMPSTANDARD    = -std=gnu11
@@ -98,6 +99,7 @@ RMDIR           = rmdir -p
 RM              = rm -f
 VOIDERROR       = 2>/dev/null
 VOIDECHO        = >/dev/null 2>&1
+EXECMD          = chmod +x
 #Displayed when the program is started using 'make run'
 st              = 'STARTING'
 #Display when the program exits and was started using 'make run'
@@ -205,6 +207,9 @@ ifeq ($(wildcard $(BUILDDIR)/.),)
 	@$(MKDIR) $(BUILDDIR)
 endif
 	$(COMPILER) $(LIBSDIR) $(COMPOUTPUTNAME) $(OUTFINAL) $(COMPFINALIZE) $(OBJECTS) $(LINKS)
+ifeq ($(BUILDINGLIB),0)
+	$(EXECMD) $(OUTFINAL)
+endif
 	@$(DISPLAY) "$(POST)\n\n"
 endif
 ifneq ($(strip $(POSTBUILDMSG)),)
