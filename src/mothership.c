@@ -31,6 +31,7 @@
 #include "shm_communication.h"
 #include "parser.h"
 #include "typedefs.h"
+#include "stats.h"
 
 #define TICK_MIN_TIME_MSEC 500
 #define BAD_ID ((identity_t) -1)
@@ -78,6 +79,8 @@ static bool* m_drones_going_to_client;
 static bool* m_remaining_packages;
 static bool* m_busy_clients;
 
+static sim_stats m_stats;
+
 // === implementations
 
 void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* hunters_p, int msqid) {
@@ -121,6 +124,11 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
 
     size_t nb_airways = (size_t) ceil(2 * M_PI / AIRWAY_SIZE);
     bool used_airway_this_turn[nb_airways];
+
+    // init stats
+    m_stats.initial_nb_drone = sdata->drone_nbr;
+    m_stats.initial_nb_package = this->package_nbr;
+    m_stats.nb_package_still_in_mothership = this->package_nbr;
 
     // wait for drones, hunters and clients.
     wait_for(m_remaining_drone_nbr + m_remaining_hunter_nbr + m_remaining_client_nbr);
@@ -202,6 +210,7 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
                         if (drone_is_flying(message.pid)) {
                             if (m_drones_going_to_client[drone_id]) {
                                 printf(FMAGENTA"\tDrone "FYELLOW""BOLD"#D%lu"RESET""FMAGENTA" arrived to its client.\n"RESET, drone_id);
+                                ++m_stats.nb_delivered_package;
                             } else {
                                 printf(FMAGENTA"\tDrone "FYELLOW""BOLD"#D%lu"RESET""FMAGENTA" came back to the mothership.\n"RESET, drone_id);
                                 remove_flying_drone(message.pid);
@@ -222,12 +231,14 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
                                 m_busy_clients[this->packages[package_id].client_id] = true;
                                 m_package_id_by_drone_id[drone_id] = package_id;
                                 --nbr_of_packages_that_can_be_loaded;
+                                --m_stats.nb_package_still_in_mothership;
                             } else {
                                 printf(FCYAN"\tNo appropriate package for it. Powering it off.\n"RESET);
                                 message_t answer = make_message(message.pid, POWER_OFF_MSG);
                                 if (msgsnd(msqid, &answer, sizeof(message_t), IPC_NOWAIT) == -1) {
                                     fail_fast("ASK_PACKAGE_MSG: msgsnd failed!");
                                 }
+                                ++m_stats.nb_powered_off_drone;
                             }
                         } else {
                             printf(FCYAN"Drone "FYELLOW""BOLD"#D%lu"RESET""FCYAN" asked a package, but has to wait for other drones to be served.\n"RESET, drone_id);
@@ -281,6 +292,9 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
     }
 
     printf("\n-------- End simulation... --------\n");
+
+    print_stats(m_stats);
+
     clean();
 }
 
