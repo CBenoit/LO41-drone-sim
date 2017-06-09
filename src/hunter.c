@@ -37,7 +37,6 @@ void hunter_main(hunter_t me) {
     wait_mothership_signal();
 
     forever {
-        --waiting_time;
         if (waiting_time == 0) {
             size_t nb_flying_drones = get_number_of_flying_drones();
             if (nb_flying_drones > 0) {
@@ -62,6 +61,8 @@ void hunter_main(hunter_t me) {
                 waiting_time = me.shoot_interval;
                 printf("\n");
             }
+        } else {
+            --waiting_time;
         }
 
         sem_post(mother_sem);
