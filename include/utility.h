@@ -28,7 +28,7 @@ enum /*return values*/{
     EXPLODED = 11,
     UNEXPECTEDLY_STOPPED = 12,
     GO_HOME = 13,
-    DIED = 14
+    CRASHED = 14
 };
 
 sem_t* mother_sem;

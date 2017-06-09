@@ -36,11 +36,12 @@ void hunter_main(hunter_t me) {
     // Waiting for the Mother Ship to be ready
     wait_mothership_signal();
 
+    unsigned long tick_count = 0;
     forever {
         if (waiting_time == 0) {
             size_t nb_flying_drones = get_number_of_flying_drones();
             if (nb_flying_drones > 0) {
-                printf(FRED"Hunter "BOLD""FYELLOW"#H%d"RESET""FRED" shoots ... "RESET, getpid());
+                printf(FRED"tick %lu - Hunter "BOLD""FYELLOW"#H%d"RESET""FRED" shoots ... "RESET, tick_count, getpid());
                 --me.ammo;
                 if ((rand() % 100 + 1) <= me.accuracy) { // successful shot!
                     pid_t* flying_drones_p = get_flying_drones();
@@ -67,6 +68,7 @@ void hunter_main(hunter_t me) {
 
         sem_post(mother_sem);
         wait_mothership_signal();
+        ++tick_count;
     }
 }
 

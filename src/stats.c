@@ -14,16 +14,17 @@
 #include "colors.h"
 
 void print_stats(sim_stats stats) {
-    printf("\n== Simulation statistics ==\n");
-    printf("\tInitial number of drones:\t"FYELLOW""BOLD"%u"RESET"\n", stats.initial_nb_drone);
-    printf("\t"FGREEN"Number of drones powered off:\t"FYELLOW""BOLD"%u"RESET"\n", stats.nb_powered_off_drone);
-    printf("\t"FLRED"Number of drones lost:\t\t"FLYELLOW""BOLD"%u"RESET"\n",
-            stats.initial_nb_drone - stats.nb_powered_off_drone);
+    printf("\n== Simulation statistics ==\n\n");
+    printf("\t"FGREEN"Number of drones powered off:    "FYELLOW""BOLD"%u/%u"RESET"\n",
+            stats.initial_nb_drone - stats.crashed_drones - stats.shot_drones, stats.initial_nb_drone);
+    printf("\t"FLYELLOW"Number of drones shot:           "FLYELLOW""BOLD"%u/%u"RESET"\n", stats.shot_drones, stats.initial_nb_drone);
+    printf("\t"FLRED"Number of crashed drones:        "FLYELLOW""BOLD"%u/%u"RESET"\n", stats.crashed_drones, stats.initial_nb_drone);
 
-    printf("\n\tInitial number of packages:\t\t\t"FLYELLOW""BOLD"%u"RESET"\n", stats.initial_nb_package);
-    printf("\t"FGREEN"Number of delivered packages:\t\t\t"FLYELLOW""BOLD"%u"RESET"\n", stats.nb_delivered_package);
-    printf("\t"FYELLOW"Number of packages still in the mothership:\t"FLYELLOW""BOLD"%u"RESET"\n", stats.nb_package_still_in_mothership);
-    printf("\t"FLRED"Number of packages lost:\t\t\t"FLYELLOW""BOLD"%u"RESET"\n",
-            stats.initial_nb_package - stats.nb_package_still_in_mothership - stats.nb_delivered_package);
+    printf("\n\t"FGREEN"Number of delivered packages:                   "FLYELLOW""BOLD"%u/%u"RESET"\n", stats.nb_delivered_package, stats.initial_nb_package);
+    printf("\t"FLYELLOW"Number of packages still in the mothership:     "FLYELLOW""BOLD"%u/%u"RESET"\n", stats.nb_package_still_in_mothership, stats.initial_nb_package);
+    printf("\t"FLRED"Number of packages lost:                        "FLYELLOW""BOLD"%u/%u"RESET"\n",
+            stats.initial_nb_package - stats.nb_package_still_in_mothership - stats.nb_delivered_package, stats.initial_nb_package);
+
+    printf("\nConsummed %.2lf power units over %lu ticks.\n", stats.power_consumption, stats.tick_count);
 }
 

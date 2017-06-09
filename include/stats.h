@@ -13,10 +13,13 @@
 
 typedef struct {
     unsigned int initial_nb_drone;
-    unsigned int nb_powered_off_drone;
+    unsigned int crashed_drones;
+    unsigned int shot_drones;
     unsigned int initial_nb_package;
     unsigned int nb_delivered_package;
     unsigned int nb_package_still_in_mothership;
+    unsigned long tick_count;
+    double power_consumption;
 } sim_stats;
 
 void print_stats(sim_stats stats);

@@ -23,6 +23,7 @@
 #include <math.h>
 #include <signal.h>
 #include <string.h>
+#include <stdarg.h>
 
 #include "colors.h"
 #include "mothership.h"
@@ -33,6 +34,7 @@
 #include "typedefs.h"
 #include "stats.h"
 
+#define COLUMNS 85
 #define BAD_ID ((identity_t) -1)
 
 // === private functions ===
@@ -72,6 +74,7 @@ static bool m_is_client_turn = false;
 static size_t m_remaining_drone_nbr;
 static size_t m_remaining_client_nbr;
 static size_t m_remaining_hunter_nbr;
+static size_t m_destroyed_pkg;
 
 static identity_t* m_package_id_by_drone_id;
 static bool* m_drones_going_to_client;
@@ -81,6 +84,83 @@ static bool* m_busy_clients;
 static sim_stats m_stats;
 
 // === implementations
+
+void print_col(const char* format, ...);
+
+void print_col(const char* format, ...) {
+ 	char text[COLUMNS];
+	va_list valist;
+	va_start(valist, format);
+	int char_length;
+	if ((char_length = vsprintf(text, format, valist)) < 0){
+		va_end(valist);
+		return;
+	}
+	va_end(valist);
+    printf("║");
+    long ignored_chars = 0;
+    for (long i = 0 ; i < char_length ; ++i) {
+        if (text[i] == '$') {
+            ++i;
+            ignored_chars += 2;
+            switch (text[i]) {
+                case 'C':
+                    printf(FCYAN);
+                    break;
+                case 'G':
+                    printf(FGREEN);
+                    break;
+                case 'R':
+                    printf(FRED);
+                    break;
+                case 'Y':
+                    printf(FYELLOW);
+                    break;
+                case 'B':
+                    printf(FBLUE);
+                    break;
+                case 'M':
+                    printf(FMAGENTA);
+                    break;
+                case 'c':
+                    printf(FLCYAN);
+                    break;
+                case 'g':
+                    printf(FLGREEN);
+                    break;
+                case 'r':
+                    printf(FLRED);
+                    break;
+                case 'y':
+                    printf(FLYELLOW);
+                    break;
+                case 'b':
+                    printf(FLBLUE);
+                    break;
+                case 'm':
+                    printf(FLMAGENTA);
+                    break;
+                case '-':
+                    printf(RESET);
+                    break;
+                case '+':
+                    printf(BOLD);
+                    break;
+                case '$':
+                    putchar('$');
+                    break;
+                default:
+                    break;
+            }
+        } else {
+            putchar(text[i]);
+        }
+    }
+    for (long i = char_length - ignored_chars ; i < COLUMNS - 2 ; ++i) {
+        putchar(' ');
+    }
+    printf("║\n");
+}
 
 void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* hunters_p, int msqid) {
     // initializing
@@ -126,13 +206,18 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
 
     // init stats
     m_stats.initial_nb_drone = sdata->drone_nbr;
+    m_stats.crashed_drones = 0;
+    m_stats.shot_drones = 0;
     m_stats.initial_nb_package = this->package_nbr;
     m_stats.nb_package_still_in_mothership = this->package_nbr;
+    m_stats.tick_count = 0;
+    m_stats.power_consumption = 0;
+
+    m_destroyed_pkg = 0;
 
     // wait for drones, hunters and clients.
     wait_for(m_remaining_drone_nbr + m_remaining_hunter_nbr + m_remaining_client_nbr);
 
-    unsigned long tick_count = 0;
     bool had_msg = false;
 
     forever {
@@ -147,12 +232,19 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
         while (msgrcv(m_msqid, &message, sizeof(message_t), getpid(), IPC_NOWAIT) != -1) {
             if (!had_msg) {
                 char header[256];
-                sprintf(header, "Tick %lu", tick_count);
+                sprintf(header, "[%lu/%d/%d] Drones ─ Tick #%lu ─ [%u/%lu/%u] Packages",
+                        m_remaining_drone_nbr,m_stats.initial_nb_drone - m_stats.crashed_drones - m_stats.shot_drones, m_stats.initial_nb_drone,
+                        m_stats.tick_count,
+                        m_stats.nb_package_still_in_mothership, m_stats.initial_nb_package - m_destroyed_pkg, m_stats.initial_nb_package);
                 size_t len = strlen(header);
 
-                printf("╔══════════════════════════════════════════╗\n");
+                printf("╔");
+                for (size_t i = COLUMNS - 2 ; i-- ;) {
+                    printf("═");
+                }
+                printf("╗\n");
                 printf("║");
-                for (size_t i = len / 2 ; i < 21 ; ++i) {
+                for (size_t i = len / 2 ; i < COLUMNS / 2 + 1; ++i) {
                     printf(" ");
                 }
 
@@ -160,17 +252,23 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
                     putchar(header[i]);
                 }
 
-                for (size_t i = len / 2 + len % 2; i < 21 ; ++i) {
+                for (size_t i = len / 2 + len % 2; i < COLUMNS / 2 + 2 ; ++i) {
                     printf(" ");
                 }
 
                 printf("║\n");
-                printf("╚══════════════════════════════════════════╝\n\n");
+                printf("╟");
+                for (size_t i = COLUMNS - 2 ; i-- ;) {
+                    printf("─");
+                }
+                printf("╢\n");
+                print_col("");
+                print_col("");
             }
             had_msg = true;
             identity_t drone_id = find_drone_id_by_pid(message.pid);
             if (drone_id == BAD_ID) {
-                printf(FLRED"Found no drone corresponding to the pid %d.\n"RESET, message.pid);
+                print_col("$r    Found no drone corresponding to the pid %d."RESET, message.pid);
             } else {
                 switch (message.msg_id) {
                     case ASK_DEPARTURE_MSG: {
@@ -183,14 +281,13 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
                             m_drones_going_to_client[drone_id] = false;
                             m_busy_clients[this->packages[m_package_id_by_drone_id[drone_id]].client_id] = false;
                             m_package_id_by_drone_id[drone_id] = BAD_ID;
-                            printf(FLBLUE"Authorized drone "FYELLOW""BOLD"#D%lu"RESET""FLBLUE" to come back to the mothership.\n"RESET, drone_id);
+                            print_col("$b    Authorized drone $Y$+#D%lu$-$b to come back to the mothership.$-", drone_id);
                         } else {
                             size_t airway_idx =
                                 (size_t) this->clients[this->packages[m_package_id_by_drone_id[drone_id]].client_id].airway
                                 + nb_airways / 2;
                             if (used_airway_this_turn[airway_idx]) {
-                                printf(FLBLUE"Did not authorized drone "FYELLOW""BOLD"#D%lu"RESET""FLBLUE
-                                        " to leave the mothership: airway not available.\n", drone_id);
+                                print_col("$b    Did not authorized drone $Y$+#D%lu$-$b to leave the mothership: airway not available.$-", drone_id);
                             } else {
                                 message_t answer = make_message(message.pid, DEPART_DRONE_MSG);
                                 if (msgsnd(msqid, &answer, sizeof(message_t), IPC_NOWAIT) == -1) {
@@ -199,20 +296,20 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
 
                                 used_airway_this_turn[airway_idx] = true;
                                 m_drones_going_to_client[drone_id] = true;
-                                printf(FLBLUE"Authorized drone "FYELLOW""BOLD"#D%lu"RESET""FLBLUE" to leave the mothership.\n"RESET, drone_id);
+                                print_col("$b    Authorized drone $Y$+#D%lu$-$b to leave the mothership.$-", drone_id);
                                 add_flying_drone(message.pid);
                             }
                         }
                         break;
                     }
                     case NOTIFY_ARRIVAL_MSG: {
-                        printf(FMAGENTA"Received notify arrival message.\n"RESET);
+                        print_col("$M    Received notify arrival message.$-");
                         if (drone_is_flying(message.pid)) {
                             if (m_drones_going_to_client[drone_id]) {
-                                printf(FMAGENTA"\tDrone "FYELLOW""BOLD"#D%lu"RESET""FMAGENTA" arrived to its client.\n"RESET, drone_id);
+                                print_col("$M        Drone $Y$+#D%lu$-$M arrived to its client.$-", drone_id);
                                 ++m_stats.nb_delivered_package;
                             } else {
-                                printf(FMAGENTA"\tDrone "FYELLOW""BOLD"#D%lu"RESET""FMAGENTA" came back to the mothership.\n"RESET, drone_id);
+                                print_col("$M        Drone $Y$+#D%lu$-$M came back to the mothership.$-", drone_id);
                                 remove_flying_drone(message.pid);
                             }
                         }
@@ -220,10 +317,10 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
                     }
                     case ASK_PACKAGE_MSG: {
                         if (nbr_of_packages_that_can_be_loaded > 0) {
-                            printf(FCYAN"Drone "FYELLOW""BOLD"#D%lu"RESET""FCYAN" asked a package.\n"RESET, drone_id);
+                            print_col("$C    Drone $Y$+#D%lu$-$C asked a package.$-", drone_id);
                             identity_t package_id;
                             if (find_appropriate_package_for_drone(message.identity_value, &package_id)) {
-                                printf(FCYAN"\tAppropriate package found (package "FYELLOW""BOLD"#P%lu"RESET""FCYAN").\n"RESET, package_id);
+                                print_col("$C        Appropriate package found (package $Y$+#P%lu$-$C).$-", package_id);
                                 message_t answer = make_identity_message(message.pid, LOAD_PACKAGE_MSG, package_id);
                                 if (msgsnd(msqid, &answer, sizeof(message_t), IPC_NOWAIT) == -1) {
                                     fail_fast("ASK_PACKAGE_MSG: msgsnd failed!");
@@ -233,34 +330,34 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
                                 --nbr_of_packages_that_can_be_loaded;
                                 --m_stats.nb_package_still_in_mothership;
                             } else {
-                                printf(FCYAN"\tNo appropriate package for it. Powering it off.\n"RESET);
+                                print_col("$C        No appropriate package for it. Powering it off.$-");
                                 message_t answer = make_message(message.pid, POWER_OFF_MSG);
                                 if (msgsnd(msqid, &answer, sizeof(message_t), IPC_NOWAIT) == -1) {
                                     fail_fast("ASK_PACKAGE_MSG: msgsnd failed!");
                                 }
-                                ++m_stats.nb_powered_off_drone;
                             }
                         } else {
-                            printf(FCYAN"Drone "FYELLOW""BOLD"#D%lu"RESET""FCYAN" asked a package, but has to wait for other drones to be served.\n"RESET, drone_id);
+                            print_col("$C    Drone $Y$+#D%lu$-$C asked a package, but has to wait for other drones to be served.$-", drone_id);
                         }
                         break;
                     }
                     case ASK_POWER_MSG: {
                         if (m_remaining_power_loading_slots > 0) {
-                            printf(FGREEN"Give a power loading slot to drone "BOLD""FYELLOW"#D%lu"RESET""FGREEN".\n"RESET, drone_id);
+                            print_col("$G    Give a power loading slot to drone $Y$+#D%lu$-$G.$-", drone_id);
                             ticks_t required_ticks = (ticks_t) ceil(message.double_value / this->power_throughput);
+                            m_stats.power_consumption += message.double_value;
                             message_t answer = make_ticks_message(message.pid, POWER_DRONE_MSG, required_ticks);
                             if (msgsnd(msqid, &answer, sizeof(message_t), IPC_NOWAIT) == -1) {
                                 fail_fast("ASK_POWER_MSG: msgsnd failed!");
                             }
                             --m_remaining_power_loading_slots;
                         } else {
-                            printf(FGREEN"Drone "BOLD""FYELLOW"#D%lu"RESET""FGREEN" requested a power loading slot, but there is none available.\n"RESET, drone_id);
+                            print_col("$G    Drone $Y$+#D%lu$-$G requested a power loading slot, but there is none available.$-", drone_id);
                         }
                         break;
                     }
                     case END_POWER_MSG: {
-                            printf(FGREEN"Drone "BOLD""FYELLOW"#D%lu"RESET""FGREEN" left a power loading slot.\n"RESET, drone_id);
+                            print_col("$G    Drone $Y$+#D%lu$-$G left a power loading slot.$-", drone_id);
                         ++m_remaining_power_loading_slots;
                         break;
                     }
@@ -268,7 +365,7 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
                         fail_fast("Unexpected message received.\n");
                         // no need to break
                 }
-                printf("\n");
+                print_col("");
             }
         }
 
@@ -278,7 +375,12 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
         }
 
         if (had_msg) {
-            printf("────────────────────────────────────────────\n\n");
+            print_col("");
+            printf("╚");
+            for (size_t i = COLUMNS - 2 ; i-- ;) {
+               printf("═");
+            }
+            printf("╝\n\n");
             had_msg = false;
         }
         tick();
@@ -288,7 +390,7 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
         if (m_remaining_drone_nbr == 0) {
             break;
         }
-        ++tick_count;
+        ++m_stats.tick_count;
     }
 
     printf("\n-------- End simulation... --------\n");
@@ -454,8 +556,9 @@ void sigchild_handler(int ignored) {
                         printf("/!\\ Drone "BOLD""FYELLOW"#D%lu"RESET" exploded (pid %d).\n", find_drone_id_by_pid(pid), pid);
                     } else if (exit_status == UNEXPECTEDLY_STOPPED) {
                         printf("/!\\ Drone "BOLD""FYELLOW"#D%lu"RESET" unexpectedly stopped (pid %d).\n", find_drone_id_by_pid(pid), pid);
-                    } else if (exit_status == DIED) {
-                        printf("/!\\ Drone "BOLD""FYELLOW"#D%lu"RESET" died (pid %d).\n", find_drone_id_by_pid(pid), pid);
+                    } else if (exit_status == CRASHED) {
+                        printf("/!\\ Drone "BOLD""FYELLOW"#D%lu"RESET" crashed (pid %d).\n", find_drone_id_by_pid(pid), pid);
+                        ++m_stats.crashed_drones;
                     } else {
                         printf("/!\\ Drone "BOLD""FYELLOW"#D%lu"RESET" exited for an unknown reason with status %d (pid %d).\n",
                                 find_drone_id_by_pid(pid), exit_status, pid);
@@ -463,6 +566,7 @@ void sigchild_handler(int ignored) {
                 } else if (WIFSIGNALED(status)) {
                     int sig = WTERMSIG(status);
                     if (sig == SIGKILL) {
+                        ++m_stats.shot_drones;
                         printf("/!\\ Drone "BOLD""FYELLOW"#D%lu"RESET" was killed (pid %d).\n", find_drone_id_by_pid(pid), pid);
                     } else {
                         printf("/!\\ Drone "BOLD""FYELLOW"#D%lu"RESET" unexpectedly ended with sig %d (pid %d).\n",
@@ -472,6 +576,10 @@ void sigchild_handler(int ignored) {
 
                 if (drone_is_flying(pid)) {
                     remove_flying_drone(pid);
+                    identity_t id = find_drone_id_by_pid(pid);
+                    if (id != BAD_ID && m_drones_going_to_client[id]) {
+                        ++m_destroyed_pkg;
+                    }
                 }
                 --m_remaining_drone_nbr;
                 if (m_is_drone_turn) {
