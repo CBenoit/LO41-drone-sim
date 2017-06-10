@@ -54,6 +54,8 @@ static identity_t find_drone_id_by_pid(pid_t drone_pid);
 static void interruption_handler(int);
 static void sigchild_handler(int);
 
+static void print_col(const char* format, ...);
+
 // === private variables
 
 static mothership_t* this;
@@ -84,83 +86,6 @@ static bool* m_busy_clients;
 static sim_stats m_stats;
 
 // === implementations
-
-void print_col(const char* format, ...);
-
-void print_col(const char* format, ...) {
- 	char text[COLUMNS];
-	va_list valist;
-	va_start(valist, format);
-	int char_length;
-	if ((char_length = vsprintf(text, format, valist)) < 0){
-		va_end(valist);
-		return;
-	}
-	va_end(valist);
-    printf("║");
-    long ignored_chars = 0;
-    for (long i = 0 ; i < char_length ; ++i) {
-        if (text[i] == '$') {
-            ++i;
-            ignored_chars += 2;
-            switch (text[i]) {
-                case 'C':
-                    printf(FCYAN);
-                    break;
-                case 'G':
-                    printf(FGREEN);
-                    break;
-                case 'R':
-                    printf(FRED);
-                    break;
-                case 'Y':
-                    printf(FYELLOW);
-                    break;
-                case 'B':
-                    printf(FBLUE);
-                    break;
-                case 'M':
-                    printf(FMAGENTA);
-                    break;
-                case 'c':
-                    printf(FLCYAN);
-                    break;
-                case 'g':
-                    printf(FLGREEN);
-                    break;
-                case 'r':
-                    printf(FLRED);
-                    break;
-                case 'y':
-                    printf(FLYELLOW);
-                    break;
-                case 'b':
-                    printf(FLBLUE);
-                    break;
-                case 'm':
-                    printf(FLMAGENTA);
-                    break;
-                case '-':
-                    printf(RESET);
-                    break;
-                case '+':
-                    printf(BOLD);
-                    break;
-                case '$':
-                    putchar('$');
-                    break;
-                default:
-                    break;
-            }
-        } else {
-            putchar(text[i]);
-        }
-    }
-    for (long i = char_length - ignored_chars ; i < COLUMNS - 2 ; ++i) {
-        putchar(' ');
-    }
-    printf("║\n");
-}
 
 void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* hunters_p, int msqid) {
     // initializing
@@ -629,5 +554,80 @@ void sigchild_handler(int ignored) {
         }
         printf("\n");
     }
+}
+
+void print_col(const char* format, ...) {
+    char text[COLUMNS];
+    va_list valist;
+    va_start(valist, format);
+    int char_length;
+    if ((char_length = vsprintf(text, format, valist)) < 0){
+        va_end(valist);
+        return;
+    }
+    va_end(valist);
+    printf("║");
+    long ignored_chars = 0;
+    for (long i = 0 ; i < char_length ; ++i) {
+        if (text[i] == '$') {
+            ++i;
+            ignored_chars += 2;
+            switch (text[i]) {
+                case 'C':
+                    printf(FCYAN);
+                    break;
+                case 'G':
+                    printf(FGREEN);
+                    break;
+                case 'R':
+                    printf(FRED);
+                    break;
+                case 'Y':
+                    printf(FYELLOW);
+                    break;
+                case 'B':
+                    printf(FBLUE);
+                    break;
+                case 'M':
+                    printf(FMAGENTA);
+                    break;
+                case 'c':
+                    printf(FLCYAN);
+                    break;
+                case 'g':
+                    printf(FLGREEN);
+                    break;
+                case 'r':
+                    printf(FLRED);
+                    break;
+                case 'y':
+                    printf(FLYELLOW);
+                    break;
+                case 'b':
+                    printf(FLBLUE);
+                    break;
+                case 'm':
+                    printf(FLMAGENTA);
+                    break;
+                case '-':
+                    printf(RESET);
+                    break;
+                case '+':
+                    printf(BOLD);
+                    break;
+                case '$':
+                    putchar('$');
+                    break;
+                default:
+                    break;
+            }
+        } else {
+            putchar(text[i]);
+        }
+    }
+    for (long i = char_length - ignored_chars ; i < COLUMNS - 2 ; ++i) {
+        putchar(' ');
+    }
+    printf("║\n");
 }
 
