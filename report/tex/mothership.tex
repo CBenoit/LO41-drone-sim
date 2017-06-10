@@ -1,3 +1,46 @@
 \chapter{Fonctionement du vaisseau mère}
 
+Le processus du vaisseau mère est le parent de tous les autres processus de type drone, client ou chasseur.
+Il connaît le pid de tout le monde et est en mesure de surveiller l'état de tout le monde. Il écoute le signal SIGCHLD pour
+être notifié si un processus meurt et de quelle façon : selon ce qui se produit, il s'assure que la simulation peut
+continuer sans problème en mettant à jour certaines données ou bien stoppe la simulation et nettoie la mémoire.
+Il s'occupe aussi de gérer l'interruption (ctrl+C) : nettoyage de la mémoire et envoi d'un signal d'extinction aux enfants.
+
+C'est aussi lui qui gère la synchronisation et le pas de simulation :
+nous utilisons une sémaphore POSIX pour faire dormir le vaisseau mère et attendre qu'un certain nombre de processus aient
+terminé leur pas de simulation. Puis, le vaisseau mère lit les messages qui lui sont destinés et effectue les
+tâches associées. Une fois la lecture des messages terminée, le vaisseau mère envoie un signal
+aux processus qui peuvent se remettre à travailler.
+
+Le vaisseau mère fait travailler les processus dans un ordre bien précis : c'est d'abord les processus drones qui
+se remettent à travailler, puis les processus clients et enfin les processus chasseurs.
+L'ordre a une certaine importance dans la mesure où :
+\begin{itemize}
+    \item les chasseurs ne peuvent tirer sur un drone que si celui-ci est dans les airs.
+    \item si un drone veut communiquer avec le client, la lecture étant non bloquante (pour les besoins de l'horloge de simulation),
+        le plus efficace est de faire en sorte d'envoyer le message en premier. Ainsi, l'envoie et la lecture du message a lieu
+        au même tic d'horloge. Ceci a du sens dans la mesure où ce n'est jamais le client qui initie la communication avec le
+        drone, mais toujours le drone qui initie la communication avec le client.
+\end{itemize}
+
+Le vaisseau mère et les drones communiquent également via une file de messages System V qui,
+contrairement à la file de messages POSIX, permet de donner un type aux messages. Nous utilisons
+le type pour indiquer le pid du destinataire du message.
+
+Au niveau de la simulation en elle même, le vaisseau mère s'occupe d'un certain nombre de tâches importantes :
+\begin{itemize}
+    \item autoriser le \emph{décollage et le départ des drones}. Pour pouvoir partir, un drone doit nécessairement envoyer
+        une requête au vaisseau mère qui pourra ou non l'autoriser à partir selon la disponibilité des couloirs aériens.
+    \item fournir des emplacements de \emph{recharche de batterie} aux drones qui le demandent.
+    \item fournir un \emph{colis approprié} aux drones. Lorsqu'un drone demande un colis, le vaisseau mère sélectionne un colis
+        selon plusieurs critères : le contenance et le poids maximal que le drone peut porter ainsi que son autonomie.
+        De plus, sur plusieurs colis appropriés, c'est celui dont la priorité est la plus élevée qui est sélectionné.
+    \item \emph{garder une trace des différents évènements} qui se produisent :
+        colis livrés, à livrer et perdus, couloirs aériens utilisés, drones disponibles, en vol, perdus, …
+\end{itemize}
+
+La liste des drones en vol est dans un segment de mémoire partagée (objet POSIX) et c'est le vaisseau mère
+qui s'assure de la tenir à jour. Aucun verrou n'est nécessaire sur les modifications de cette liste car le vaisseau mère
+ne la modifie que lorsque tous les autres processus sont endormis en attente du signal de reprise. La synchronisation est donc
+déjà gérée.
 
