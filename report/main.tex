@@ -3,8 +3,6 @@
 \usepackage{graphicx}
 \usepackage{xcolor}
 
-\newcommand\codequote[1]{\colorbox{lightgray}{#1}}
-
 \input{./tex/preamble.tex}
 
 \declaredocument{Rapport de projet LO41}{Livraison de colis par drone}{LO41-P2017}
@@ -34,13 +32,6 @@
 
 \begin{document}
 
-%######################### list of figures, tables, algo, … ########
-\frontmatter
-
-\tableofcontents
-
-%######################### Main body ###############################
-
 \include{./tex/introduction}
 
 \include{./tex/modelisation-petri}
@@ -50,10 +41,6 @@
 \include{./tex/mothership}
 
 \include{./tex/drone}
-
-%##################### Conclusion, bibliography & index ############
-
-\printindex % see http://winnt.developpez.com/tutoriels/latex-index/
 
 \end{document}
 

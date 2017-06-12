@@ -1,2 +1,41 @@
-\chapter{Objets IPC utilisés}
+\chapter{Synchronisation et communication}
+
+Tout d'abord, nous avons fait le choix d'utiliser les processus et non les threads.
+Le vaisseau mère est le processus père de tous les autres processus : processus drone, processus client et processus chasseur.
+De ce fait, tous les éléments sont réellement indépendants les uns des autres et il est nécessaire de communiquer via
+des objets IPC : pas de partage de l'espace d'adressage comme pour les threads (qui n'auraient alors nécessité que
+la mise en place de verroux pour la synchronisation). Cela nous a semblé plus proche
+du comportement final du système de livraison. Il est possible d'envoyer manuellement le signal SIGKILL à un processus
+drone et la simulation s'adaptera, de la même façon que dans la réalité un drone peut avoir dysfonctionnement.
+Des événements tels que les chasseurs (processus tueurs de drones) sont également présents pour simuler cela.
+La gestion des signaux avec les processus est bien plus commode.
+
+Pour la synchronisation de la simulation, nous avons mis en place un système d'horloge et de pas de simulation. Un pas
+de simulation correspond à un tic d'horloge. Lors un pas de simulation, les différents processus effectuent des tâches
+bien précises et attendent le pas suivant. Ainsi, on est sûrs que tout le monde effectue à temps équivalent la même
+quantité d'action. De plus, il est possible de ralentir ou d'accelerer la simulation selon la vitesse de l'horloge.
+
+Nous utilisons la plupart des objets IPC : \emph{signaux, tubes, sémaphores, mémoire partagée et file de messages.}
+
+Les \emph{signaux} sont utilisés dans diverses portions du programme :
+\begin{itemize}
+    \item gestion de l'interruption clavier.
+    \item meurtre de drone (par les chasseurs) avec SIGKILL.
+    \item écoute des processus enfants qui s'arrêtent par le vaisseau mère (cf: chapitre \ref{chap:mothership}).
+    \item indication à un processus précis de se remettre à travailler (exécution d'un tic d'horloge) avec un signal utilisateur
+        envoyé par le vaisseau mère (cf: chapitre \ref{chap:mothership}).
+\end{itemize}
+
+Nous utilisons une seule \emph{sémaphore} pour permettre au vaisseau mère d'attendre les processus qui travaillent. Lorsqu'un
+processus a terminé son tic d'horloge, il incrémente la valeur de la sémaphore.
+
+Les \emph{tubes} sont utilisés pour la communication drones/clients.
+Les clients ouvrent tous une paire de tubes (un pour la lecture, l'autre pour l'écriture).
+Lorsqu'un drone veut communiquer avec un client, il écrit simplement dans le bon tube et attend la réponse dans l'autre tube.
+
+Le \emph{segment de mémoire partagée} est utilisé pour compter et stocker une liste de drones actuellement dans les airs.
+Le vaisseau mère tient cette liste à jour et les chasseurs piochent dans la liste pour tuer des drones aléatoirement.
+
+La \emph{file de messages} est utilisée pour la communication vaisseau mère/drones. Le type des messages correspond au pid des
+destinataire. Ainsi, chacun peut récupérer les messages qui lui sont destinés et travailler selon.
 
