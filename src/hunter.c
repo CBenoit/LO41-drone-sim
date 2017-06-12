@@ -53,6 +53,8 @@ void hunter_main(hunter_t me) {
                 }
 
                 if (me.ammo == 0) {
+                    sem_post(mother_sem);
+                    wait_mothership_signal();
                     printf(FRED"Hunter "BOLD""FYELLOW"#H%d"RESET""FRED" has no more ammo and goes back home."RESET"\n", getpid());
                     unmap_shared_memory();
                     sem_close(mother_sem);

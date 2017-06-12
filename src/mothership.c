@@ -207,12 +207,15 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
                             m_busy_clients[this->packages[m_package_id_by_drone_id[drone_id]].client_id] = false;
                             m_package_id_by_drone_id[drone_id] = BAD_ID;
                             print_col("$b    Authorized drone $Y$+#D%lu$-$b to come back to the mothership.$-", drone_id);
+                            add_flying_drone(message.pid);
                         } else {
                             size_t airway_idx =
                                 (size_t) this->clients[this->packages[m_package_id_by_drone_id[drone_id]].client_id].airway
                                 + nb_airways / 2;
                             if (used_airway_this_turn[airway_idx]) {
                                 print_col("$b    Did not authorized drone $Y$+#D%lu$-$b to leave the mothership: airway not available.$-", drone_id);
+                            } else if (m_busy_clients[this->packages[m_package_id_by_drone_id[drone_id]].client_id]) {
+                                print_col("$b    Did not authorized drone $Y$+#D%lu$-$b to leave the mothership: target client busy.$-", drone_id);
                             } else {
                                 message_t answer = make_message(message.pid, DEPART_DRONE_MSG);
                                 if (msgsnd(msqid, &answer, sizeof(message_t), IPC_NOWAIT) == -1) {
@@ -233,6 +236,7 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
                             if (m_drones_going_to_client[drone_id]) {
                                 print_col("$M        Drone $Y$+#D%lu$-$M arrived to its client.$-", drone_id);
                                 ++m_stats.nb_delivered_package;
+                                remove_flying_drone(message.pid);
                             } else {
                                 print_col("$M        Drone $Y$+#D%lu$-$M came back to the mothership.$-", drone_id);
                                 remove_flying_drone(message.pid);
@@ -436,7 +440,6 @@ bool find_appropriate_package_for_drone(identity_t drone_id, identity_t* package
                     && this->packages[i].weight <= drone.max_package_weight
                     && this->packages[i].volume <= drone.max_package_volume
                     && drone.max_fuel * drone.speed > this->clients[this->packages[i].client_id].mothership_distance * 2
-                    && !m_busy_clients[this->packages[i].client_id]
                     && priority <= this->packages[i].priority) {
                 priority = this->packages[i].priority;
                 *package_id_found = i;
