@@ -1,6 +1,9 @@
-\documentclass[book, backcover, nodocumentinfo, french]{upmethodology-document}
+\documentclass[report, backcover, nodocumentinfo, french, nopubpage, oneside]{upmethodology-document}
 \usepackage{textcomp} % for french...
 \usepackage{graphicx}
+\usepackage{xcolor}
+
+\newcommand\codequote[1]{\colorbox{lightgray}{#1}}
 
 \input{./tex/preamble.tex}
 
@@ -37,7 +40,6 @@
 \tableofcontents
 
 %######################### Main body ###############################
-\mainmatter
 
 \include{./tex/introduction}
 
@@ -50,9 +52,6 @@
 \include{./tex/drone}
 
 %##################### Conclusion, bibliography & index ############
-\backmatter
-
-\include{./tex/conclusion}
 
 \printindex % see http://winnt.developpez.com/tutoriels/latex-index/
 

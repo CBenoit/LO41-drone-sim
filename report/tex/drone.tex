@@ -1,2 +1,56 @@
 \chapter{Fonctionement des drones}
 
+Chaque drone est un processus à part entière, de la même manière que le vaisseau mère, les clients, et les chasseurs.
+Tout les drônes attendent l'arrivée du tic du vaisseau mère, et agissent alors parallèlement, selon leur état courant.
+Les drone sont en effet des \emph{Automates fini}, mis en place à l'aide de pointeurs vers des fonctions.
+
+Les différents états sont les suivants:
+\begin{itemize}
+    \item en vol
+    \item livraison du colis
+    \item rechargement en carburant
+    \item chargement du colis
+    \item attente d'autorisation de départ.
+\end{itemize}
+
+\section{État `En vol'}
+    Lorsqu'un drone est en vol, il consomme une unité de carburant par tic, et avance de sa N unités de distance vers sa cible,
+    le client ou le vaisseau mère (avec N la vitesse du drone).
+    Si sa réserve de caburant arrive à \(0\), le drone se crashe alors via un \codequote{exit(CRASHED)},
+    et le vaisseau mère peut alors récupérer l'information avec un \codequote{wait}. \\
+    Une fois que le vol est terminé, le drone signale au vaisseau mère son arrivée via une file de messages,
+    et passe dans l'état `livraison du colis' si le drone est parvenu au client qu'il doit livrer,
+    ou `rechargement en carburant' s'il vient d'arriver au vaisseau mère.
+
+\section{État `Livraison du colis'}
+    Dans l'état `livraison du colis', le drone se pose chez son client et l'informe de son arrive.
+    Après cela, il reste en attente jusqu'à ce que son client cible ait finit de récupérer son colis.
+    Une fois son client livré, il passe à l'état `Attente d'autorisation de départ', afin de ne pas
+    percuter un autre drone qui utiliserai le même couloir aérien.
+
+\section{État `Attente d'autorisation de départ'}
+    Avant de décoller du vaisseau mère ou de revenir de chez le client, le drone demande au vaisseau mère
+    l'autorisation de décoller, pour empêcher deux accidents possible:
+    \begin{itemize}
+        \item collision entre deux appareils utilisant le même couloir aérien
+        \item un client n'a pas fini de récupérer son colis (on ne sait pas combien de temps il va encore prendre).
+    \end{itemize}
+    Un fois qu'il a obtenu l'autorisation de partir, le drone s'en va vers sa destination, et passe dans l'état `en vol'.
+
+\section{État `Rechargement en carburant'}
+    Pour se recharger en carburant, le drone demande tout d'abord au vaisseau mère un câble de recharge.
+    S'il n'y en a pas de disponible, le drone redemande alors câble au tic suivant.
+    Une fois de câble obtenu, le drone attend d'être completement chargé, libère le câble,
+    et passe dans l'état `chargement du colis'.
+
+\section{État `Chargement du colis'}
+    Dans cet état, le drône demande au vaisseau mère de lui fournir un colis.
+    Il y a alors trois possibilités:
+    \begin{itemize}
+        \item aucun bras de chargement n'est dispnible, auquel cas le drone attend le tic suivant
+        \item aucun colis adapté au drone n'est disponible, auquel cas le drone est éteind.
+        \item un colis est disponible, et est alors chargé sur le drone.
+    \end{itemize}
+    Si le drone a acqui un colis, il passe alors dans l'état `Attente d'autorisation de départ',
+    avant de s'élancer vers son client cible.
+
