@@ -1,24 +1,19 @@
 # vaisseau mère
 #vaisseau;X;Y;débit_colis;débit_pompes;nbr_pompes
-vaisseau;0;0;4;10.5;3
+vaisseau;30;30;1;10.5;3
 
 # drones
 #drone;capacité_fuel;capacité_poids;capacité_volume;vitesse
-drone;150;55;50;2
-drone;300;40;30;1
-drone;190;35;20;1
-drone;195;30;15;1
+drone;100;50;25;2
+drone;80;30;15;1
 
 # clients
 #client;X;Y;ID(entier >= 0)
-client;50;0;7
-client;60;5;2
-client;75;-5;4
-client;100;10;5
-client;90;5;9
-client;80;-5;10
-client;95;5;1
-client;55;-5;11
+client;50;30;7
+client;60;30;2
+client;10;10;4
+client;0;60;5
+client;30;1000;9
 
 # colis
 #colis;poids;volume;client_cible(entier >= 0);priorité(entier >= 0)
@@ -29,12 +24,8 @@ colis;55;10;2;0
 colis;10;10;4;125
 colis;10;10;5;50
 colis;10;10;9;89
-colis;45;40;11;30
-colis;25;10;1;30
-colis;25;10;10;30
-colis;25;10;10;30
 
 # chasseurs
 #chasseur;qtt_munition;temps_rechargement;précision (%)
-chasseur;4;20;10
+chasseur;2;20;1
 
