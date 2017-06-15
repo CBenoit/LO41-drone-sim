@@ -78,9 +78,8 @@ void start(sim_data* sdata) {
     // creating message queue
     int msqid = msgget(IPC_PRIVATE, IPC_CREAT | IPC_EXCL | 0600);
     if (msqid == -1) {
-        sem_unlink(MOTHER_SEM_NAME);
         sem_close(mother_sem);
-        sem_destroy(mother_sem);
+        sem_unlink(MOTHER_SEM_NAME);
         clean_shared_memory();
         perror("msgget");
         exit(EXIT_FAILURE);

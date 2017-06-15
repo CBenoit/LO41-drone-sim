@@ -404,9 +404,8 @@ void clean() {
     free(m_clients_p);
     free(m_hunters_p);
 
-    sem_unlink(MOTHER_SEM_NAME);
     sem_close(mother_sem);
-    sem_destroy(mother_sem);
+    sem_unlink(MOTHER_SEM_NAME);
 
     unmap_shared_memory();
     clean_shared_memory();
