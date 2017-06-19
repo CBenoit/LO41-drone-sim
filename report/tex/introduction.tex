@@ -1,2 +1,39 @@
 \section{Introduction}
 
+Dans ce projet, nous devions mettre en place une simulation de livraison par drones en mettant en avant la problématique
+de la synchronisation entre les différents acteurs. Cela dans le but de mettre en pratique concrètement des outils tels que
+les sémaphores, les processus, les threads, les signaux, …
+
+Nous avons choisi de répondre au problème en utilisant :
+\begin{itemize}
+    \item des processus et non des threads
+    \item des signaux
+    \item des tubes (pipes)
+    \item des sémaphores
+    \item de la mémoire partagée
+    \item une file de messages
+\end{itemize}
+
+L'utilisation respective de ces différents éléments est détaillée par la suite du rapport.
+
+Notre simulation prend en charge un certain nombre de fonctionalités :
+\begin{itemize}
+    \item configuration de la simulation via fichier csv.
+    \item arguments à passer en ligne de commandes pour l'exécution de la simulation (cf \emph{README.md}).
+    \item La simulation tourne en tenant compte
+        \begin{itemize}
+            \item des drones : autonomie de fonctionnement, distance à couvrir,
+                poids et du volume pouvant être stocké, disponibilité.
+            \item des colis : priorité du colis, poids et volume du colis.
+            \item des capacités du vaisseau mère : emplacements de recharge disponibles,
+                vitesse de chargement des colis sur les drones, …
+            \item de la disponibilité des clients.
+            \item des couloirs aériens : tous les drones ne peuvent pas partir en même temps dans la même direction.
+            \item d'éventuels aléas pouvant survenir : ici représentés par des « chasseurs » qui tirent sur les drones.
+        \end{itemize}
+\end{itemize}
+
+Lorsque la simulation est terminée, un rapport de simulation est affiché.
+
+Nous allons d'abord étudier le problème à l'aide de la modélisation d'un diagramme de Pétri.
+
