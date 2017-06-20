@@ -224,6 +224,7 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
 
                                 used_airway_this_turn[airway_idx] = true;
                                 m_drones_going_to_client[drone_id] = true;
+                                m_busy_clients[this->packages[m_package_id_by_drone_id[drone_id]].client_id] = true;
                                 print_col("$b    Authorized drone $Y$+#D%lu$-$b to leave the mothership.$-", drone_id);
                                 add_flying_drone(message.pid);
                             }
@@ -254,7 +255,6 @@ void mothership_main(sim_data* sdata, pid_t* drones_p, pid_t* clients_p, pid_t* 
                                 if (msgsnd(msqid, &answer, sizeof(message_t), IPC_NOWAIT) == -1) {
                                     fail_fast("ASK_PACKAGE_MSG: msgsnd failed!");
                                 }
-                                m_busy_clients[this->packages[package_id].client_id] = true;
                                 m_package_id_by_drone_id[drone_id] = package_id;
                                 --nbr_of_packages_that_can_be_loaded;
                                 --m_stats.nb_package_still_in_mothership;
@@ -440,9 +440,15 @@ bool find_appropriate_package_for_drone(identity_t drone_id, identity_t* package
                     && this->packages[i].volume <= drone.max_package_volume
                     && drone.max_fuel * drone.speed > this->clients[this->packages[i].client_id].mothership_distance * 2
                     && priority <= this->packages[i].priority) {
-                priority = this->packages[i].priority;
-                *package_id_found = i;
-                found = true;
+                // A package is selected if the associated client is not busy or if there is no other choice.
+                if (!found || !m_busy_clients[this->packages[i].client_id]) {
+                    if (!m_busy_clients[this->packages[i].client_id]) {
+                        // don't update max priority found for packages whose client is busy
+                        priority = this->packages[i].priority;
+                    }
+                    *package_id_found = i;
+                    found = true;
+                }
             }
         }
         if (found) {
@@ -509,6 +515,7 @@ void sigchild_handler(int ignored) {
                     }
                 }
                 --m_remaining_drone_nbr;
+                m_busy_clients[this->packages[m_package_id_by_drone_id[find_drone_id_by_pid(pid)]].client_id] = false;
                 if (m_is_drone_turn) {
                     sem_post(mother_sem);
                 }
