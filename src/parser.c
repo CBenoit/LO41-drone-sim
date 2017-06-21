@@ -18,8 +18,13 @@
 #include "parser.h"
 #include "typedefs.h"
 
+// Counts the number of drones, hunter, clients, and packages in the file
 static void count(parser_data* data, FILE* file);
+
+// Parses a file, assuming 'data' is properly allocated
 static void parse(parser_data* data, FILE* file);
+
+// finds the index of a long in its array.
 static identity_t find(unsigned long value, unsigned long* array, unsigned long size);
 
 void load(parser_data* data, const char* file_path) {
@@ -111,7 +116,7 @@ void parse(parser_data* data, FILE* file) {
             data->mothership.package_throughput = strtoul(strtok(NULL,",;"), NULL, 10);
             data->mothership.reloader_throughput = strtod(strtok(NULL,",;"), NULL);
             data->mothership.reloader_nbr = strtoul(strtok(NULL,",;"), NULL, 10);
-        }
+        } // else: unknown type, ignored.
 
         free(line);
         line = NULL;
@@ -130,6 +135,7 @@ void load_simulation_data(parser_data* input, sim_data* output) {
 
     identity_t* clients_ids_map = malloc(output->mothership.client_nbr * sizeof(identity_t));
 
+        // clients
     output->mothership.clients  = malloc(output->mothership.client_nbr  * sizeof(client_t));
     for (uint_fast32_t i = output->mothership.client_nbr ; i-- ;) {
         double rx = input->clients[i].coord[parser_x] - input->mothership.coord[parser_x]; // relative x
@@ -142,6 +148,7 @@ void load_simulation_data(parser_data* input, sim_data* output) {
         clients_ids_map[i] = input->clients[i].id;
     }
 
+        // packages
     output->mothership.packages = malloc(output->mothership.package_nbr * sizeof(package_t));
     for (uint_fast32_t i = output->mothership.package_nbr ; i-- ;) {
         output->mothership.packages[i].priority = input->packages[i].priority;

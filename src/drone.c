@@ -23,31 +23,49 @@
 #include "drone.h"
 #include "mq_communication.h"
 
+
 struct state {
     bool going_to_client;
     void(*run)(void);
 };
 
+// Method we're in when flying
 static void flying_state(void);
+
+// Method we're in when we're delivering a client
 static void delivering_state(void);
+
+// Method we're in when we're refueling
 static void refueling_state(void);
+
+// Method we're in when we're trying to load a package
 static void loading_state(void);
+
+// Method we're in when we're waiting for the mothership's authorization to go.
 static void waiting_departure_auth_state(void);
 
+// Method to clean the drone's data
 static void clean(void);
+
+// Method to call to wait for the mothership's tick
 static void tick(void);
+// For the mothership's message queue
 static void send(message_t*);
 
-static drone_t m_me;
+// last message we received
 static message_t m_last_message;
-static int m_msqid;
+// our current state
 static struct state m_state;
+
 static int* m_clients_pipes;
 static unsigned int m_clients_nbr;
 static sim_data* m_sdata;
+static drone_t m_me;
+static int m_msqid;
 
 void drone_main(drone_t me, int* clients_pipes, unsigned int number_of_clients, int msqid, sim_data* sdata) {
 
+    // initialisation
     sigset_t mask;
     sigaddset(&mask, MOTHERSHIP_SIGNAL);
     sigprocmask(SIG_BLOCK, &mask, NULL);
@@ -65,6 +83,7 @@ void drone_main(drone_t me, int* clients_pipes, unsigned int number_of_clients, 
     // I am ready
     tick();
 
+    // running until death (by crash, bullet in the knee, mothership's poweroff,...)
     forever {
         m_state.run();
     }
@@ -74,6 +93,7 @@ void drone_main(drone_t me, int* clients_pipes, unsigned int number_of_clients, 
 }
 
 void flying_state() {
+    // We're flying!
     if (m_state.going_to_client) {
         while (m_me.client_distance > 0) {
             m_me.client_distance -= m_me.speed;
@@ -81,11 +101,13 @@ void flying_state() {
             --m_me.fuel;
             tick();
             if (m_me.fuel < 0) {
+                // We just crashed! :(
                 printf("Crashing !\n");
                 clean();
                 exit(CRASHED);
             }
         }
+        // updating the next state
         m_state.run = &delivering_state;
     } else {
         while (m_me.mothership_distance > 0) {
@@ -94,11 +116,13 @@ void flying_state() {
             --m_me.fuel;
             tick();
             if (m_me.fuel < 0) {
+                // We just crashed! :(
                 printf("Crashing !\n");
                 clean();
                 exit(CRASHED);
             }
         }
+        // updating the next state
         m_state.run = &refueling_state;
     }
 
@@ -108,64 +132,88 @@ void flying_state() {
 
 void delivering_state() {
 
+    // telling the client the size of our package
     dprintf(m_clients_pipes[m_me.package->client_id * 2 + 1], "%lf\n", m_me.package->volume);
     tick();
 
     char msg[256];
     read(m_clients_pipes[m_me.package->client_id * 2], msg, 256);
     unsigned long waiting_time = strtoul(msg, NULL, 10);
+
+    // waiting until the client had enough time to take the package
     while(waiting_time--) {
         tick();
     }
-    m_me.package = NULL;
+
+    // updating next state
     m_state.run = &waiting_departure_auth_state;
     m_state.going_to_client = false;
+    m_me.package = NULL;
 }
 
 void waiting_departure_auth_state() {
+    // Sending a departure request to the mothership until it is fulfilled
     message_t message = make_identity_message(getppid(), ASK_DEPARTURE_MSG, m_me.id);
     do {
         send(&message);
         tick();
     } while (m_last_message.msg_id != DEPART_DRONE_MSG);
+
+    // updating next state
     m_state.run = &flying_state;
 }
 
 void refueling_state() {
+
+    // Sending a reloading request to the mothership until it is fulfilled
     message_t message = make_double_message(getppid(), ASK_POWER_MSG, m_me.max_fuel - m_me.fuel);
     do {
         send(&message);
         tick();
     } while (m_last_message.msg_id != POWER_DRONE_MSG);
-
     int waiting_time = m_last_message.int_value;
 
+    // plugging
+    tick();
+
+    // refueling until full
     while(waiting_time--) {
         tick();
     }
     m_me.fuel = m_me.max_fuel;
 
+    // one extra tick to unplug.
+    tick();
+
+    // we finished loading
     message.msg_id = END_POWER_MSG;
     send(&message);
 
+    // updating next state
     m_state.run = &loading_state;
 }
 
 void loading_state() {
+
+    // Asking a package to the mothership until it gives us one.
     message_t message = make_identity_message(getppid(), ASK_PACKAGE_MSG, m_me.id);
     do {
         send(&message);
         tick();
     } while(m_last_message.msg_id != LOAD_PACKAGE_MSG);
 
-    m_me.package = m_sdata->mothership.packages + m_last_message.int_value;
-    m_me.client_distance = m_sdata->mothership.clients[m_me.package->client_id].mothership_distance;
+    // updating next state and package
     m_state.run = &waiting_departure_auth_state;
     m_state.going_to_client = true;
+    m_me.package = m_sdata->mothership.packages + m_last_message.int_value;
+    m_me.client_distance = m_sdata->mothership.clients[m_me.package->client_id].mothership_distance;
 }
 
 void tick() {
+    // we finished our tick ; freeing resource for the mothership
     sem_post(mother_sem);
+
+    // waiting for a mothership's signal.
     wait_mothership_signal();
 
     // Reading messages.
@@ -174,9 +222,11 @@ void tick() {
     while (msgrcv(m_msqid, &msg, sizeof(message_t), getpid(), IPC_NOWAIT) != -1) {
         switch (msg.msg_id) {
             case EXPLOSE_MSG:
+                // a hunter killed us
                 clean();
                 exit(EXPLODED);
             case POWER_OFF_MSG:
+                // the mothership powered us off
                 clean();
                 exit(GRACEFULLY_STOPPED);
             default:
@@ -192,8 +242,11 @@ void send(message_t* msg) {
 }
 
 void clean() {
-    sem_close(mother_sem);
+    // freeing resources
     close_pipes(m_clients_nbr, m_clients_pipes);
     free(m_clients_pipes);
     unload_simulation(m_sdata);
+
+    // we technically finished our tick
+    sem_close(mother_sem);
 }

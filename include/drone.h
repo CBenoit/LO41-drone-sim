@@ -14,7 +14,16 @@
 #include "structs.h"
 #include "parser_structs.h"
 
-void drone_main(drone_t, int*, unsigned int, int, sim_data*);
+/**
+ * @brief Launches a drone.
+ * 
+ * @param drone             Informations about the launched drone.
+ * @param client_pipes      File descriptor's id linked to the clients.
+ * @param number_of_clients Total number of clients.
+ * @param msqid             ID of the mothership's message queue
+ * @param data              Data of the simulation.
+ */
+void drone_main(drone_t drone, int* client_pipes, unsigned int number_of_clients, int msqid, sim_data* data);
 
 #endif /* ifndef DRONE_SIM_DRONE */
 
