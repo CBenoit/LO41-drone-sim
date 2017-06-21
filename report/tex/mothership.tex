@@ -1,8 +1,8 @@
 \section{Fonctionement du vaisseau mère}\label{chap:mothership}
 
 Le processus du vaisseau mère est le parent de tous les autres processus de type drone, client ou chasseur.
-Il connaît le pid de tout le monde et est en mesure de surveiller l'état de tout le monde. Il écoute le signal SIGCHLD pour
-être notifié si un processus meurt et de quelle façon : selon ce qui se produit, il s'assure que la simulation peut
+Il connaît le pid de tout le monde et est en mesure de surveiller l'état de tout le monde. Il écoute le signal \codequote{SIGCHLD}
+pour être notifié si un processus meurt et de quelle façon : selon ce qui se produit, il s'assure que la simulation peut
 continuer sans problème en mettant à jour certaines données ou bien stoppe la simulation et nettoie la mémoire.
 Il s'occupe aussi de gérer l'interruption (ctrl+C) : nettoyage de la mémoire et envoi d'un signal d'extinction aux enfants.
 

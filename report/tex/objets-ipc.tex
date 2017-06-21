@@ -5,7 +5,7 @@ Le vaisseau mère est le processus père de tous les autres processus : process
 De ce fait, tous les éléments sont réellement indépendants les uns des autres et il est nécessaire de communiquer via
 des objets IPC : pas de partage de l'espace d'adressage comme pour les threads (qui n'auraient alors nécessité que
 la mise en place de verroux pour la synchronisation). Cela nous a semblé plus proche
-du comportement final du système de livraison. Il est possible d'envoyer manuellement le signal SIGKILL à un processus
+du comportement final du système de livraison. Il est possible d'envoyer manuellement le signal \codequote{SIGKILL} à un processus
 drone et la simulation s'adaptera, de la même façon que dans la réalité un drone peut avoir dysfonctionnement.
 Des événements tels que les chasseurs (processus tueurs de drones) sont également présents pour simuler cela.
 La gestion des signaux avec les processus est bien plus commode.
@@ -20,7 +20,7 @@ Nous utilisons la plupart des objets IPC : \emph{signaux, tubes, sémaphores, m
 Les \emph{signaux} sont utilisés dans diverses portions du programme :
 \begin{itemize}
     \item gestion de l'interruption clavier.
-    \item meurtre de drone (par les chasseurs) avec SIGKILL.
+    \item meurtre de drone (par les chasseurs) avec \codequote{SIGKILL}.
     \item écoute des processus enfants qui s'arrêtent par le vaisseau mère (cf: chapitre \ref{chap:mothership}).
     \item indication à un processus précis de se remettre à travailler (exécution d'un tic d'horloge) avec un signal utilisateur
         envoyé par le vaisseau mère (cf: chapitre \ref{chap:mothership}).
