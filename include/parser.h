@@ -42,7 +42,7 @@ void unload(parser_data* data);
 void load_simulation_data(parser_data* input, sim_data* output);
 
 /**
- * @brief Cleans previoulsy loaded 
+ * @brief Cleans previoulsy loaded simulation.
  *
  * @param[in] data Data to unload.
  */
